@@ -1,0 +1,13 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "跨境电商运营工作支持",
+  "outputfilename": "跨境电商运营工作支持",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "ZingYao",
+    "email": "v_zxxzyao@tencent.com"
+  }
+}
