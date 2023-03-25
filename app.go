@@ -10,6 +10,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"gorm.io/gorm"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -69,7 +70,7 @@ func (a *App) reloadClient() {
 	a.client = openai.NewClientWithConfig(openaiConfig)
 }
 
-func (a *App) Conversation(uuid, title, question string) (result string) {
+func (a *App) Chat(uuid, title, question string) (result string) {
 	var conversation Conversation
 	if a.client == nil {
 		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
@@ -119,7 +120,7 @@ func (a *App) Conversation(uuid, title, question string) (result string) {
 	return answer.Content
 }
 
-func (a *App) MessageDialog(msgType, title, msg string) error {
+func (a *App) UtilMessageDialog(msgType, title, msg string) error {
 	var dialogType runtime.DialogType
 	switch msgType {
 	case "error":
@@ -133,6 +134,32 @@ func (a *App) MessageDialog(msgType, title, msg string) error {
 		Message: msg,
 	})
 	return err
+}
+
+func (a *App) UtilCheckProxy(proxyAddr string, webAddr string) string {
+	proxyUrl, err := url.Parse(proxyAddr)
+	if err != nil {
+		return fmt.Sprintf("代理地址解析出错(%v)", err)
+	}
+	client := http.DefaultClient
+	client.Transport = &http.Transport{Proxy: http.ProxyURL(proxyUrl)}
+	req, err := http.NewRequestWithContext(a.ctx, http.MethodGet, webAddr, nil)
+	if err != nil {
+		return fmt.Sprintf("新建请求出错(%v)", err)
+	}
+	rsp, err := client.Do(req)
+	if err != nil {
+		return fmt.Sprintf("请求出错(%v)", err)
+	}
+	defer rsp.Body.Close()
+	body, err := ioutil.ReadAll(rsp.Body)
+	if err != nil {
+		return fmt.Sprintf("获取请求结果正文失败(%v)", err)
+	}
+	if rsp.StatusCode == 200 {
+		body = []byte("success")
+	}
+	return fmt.Sprintf("[%d]%s", rsp.StatusCode, string(body))
 }
 
 func (a *App) getConversation(uuid, title string) (conversation Conversation, err error) {
@@ -186,7 +213,7 @@ func (a *App) getConversation(uuid, title string) (conversation Conversation, er
 	return conversation, nil
 }
 
-func (a *App) GetMessageList(uuid, title string) []openai.ChatCompletionMessage {
+func (a *App) MessageGetList(uuid, title string) []openai.ChatCompletionMessage {
 	conversation, err := a.getConversation(uuid, title)
 	if err != nil {
 		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
@@ -199,7 +226,7 @@ func (a *App) GetMessageList(uuid, title string) []openai.ChatCompletionMessage 
 	return conversation.list
 }
 
-func (a *App) GetConversationList() []entities.Conversation {
+func (a *App) ConversationGetList() []entities.Conversation {
 	_, conversationList, err := a.conversationDao.GetList("", "", 0, 1, 100)
 	if err != nil {
 		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
@@ -212,11 +239,11 @@ func (a *App) GetConversationList() []entities.Conversation {
 	return conversationList
 }
 
-func (a *App) GetConfig() entities.Config {
+func (a *App) ConfigGet() entities.Config {
 	return a.config
 }
 
-func (a *App) SetApiKey(apiKey string) bool {
+func (a *App) ConfigSetApiKey(apiKey string) bool {
 	err := a.configDao.SetConfig(a.userName, entities.Config{ApiKey: apiKey})
 	if err != nil {
 		return false
@@ -226,7 +253,7 @@ func (a *App) SetApiKey(apiKey string) bool {
 	return true
 }
 
-func (a *App) SetProxy(proxyAddr string) bool {
+func (a *App) ConfigSetProxy(proxyAddr string) bool {
 	err := a.configDao.SetConfig(a.userName, entities.Config{ProxyAddr: proxyAddr})
 	if err != nil {
 		return false
@@ -234,4 +261,20 @@ func (a *App) SetProxy(proxyAddr string) bool {
 	a.config.ProxyAddr = proxyAddr
 	a.reloadClient()
 	return true
+}
+
+func (a *App) ConversationDelete(uuid string) string {
+	err := a.conversationDao.DelOneByUUID(uuid)
+	if err != nil {
+		return err.Error()
+	}
+	return ""
+}
+
+func (a *App) ConversationRename(uuid string, title string) string {
+	err := a.conversationDao.UpdateConversation(uuid, entities.Conversation{Title: title})
+	if err != nil {
+		return err.Error()
+	}
+	return ""
 }

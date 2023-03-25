@@ -1,8 +1,15 @@
 import {entities} from "../models";
 import {ReactNode, useEffect, useState} from "react";
-import {Button, Dialog, Input, Menu, MenuValue} from "tdesign-react";
-import { PinIcon,PinFilledIcon } from 'tdesign-icons-react';
-import {GetConfig, GetConversationList, MessageDialog, SetApiKey, SetProxy} from "../../wailsjs/go/main/App";
+import {Button, Dialog, Input, Menu, MenuValue,MessagePlugin} from "tdesign-react";
+import { PinIcon,PinFilledIcon,DeleteIcon } from 'tdesign-icons-react';
+import {
+    CheckProxy,
+    GetConfig,
+    ConversationGetList,
+    UtilMessageDialog,
+    SetApiKey,
+    SetProxy
+} from "../../wailsjs/go/main/App";
 import {v4 as uuid} from "uuid";
 
 const {MenuItem} = Menu
@@ -18,9 +25,10 @@ type MenuViewPropsType = {
 
 const MenuView = (props: MenuViewPropsType) => {
     const {onChange, defaultSelected,currentConversationId, setCurrentConversationId, setConversationList} = props
-    const googleAddr = "https://www.google.com/"
     let {conversationList} = props
 
+    // 代理测试地址
+    let [proxyTestAddr,setProxyTestAddr] = useState("https://api.openai.com/v1")
     //新建会话窗口显示控制
     let [newConversationVisible, setNewConversationVisible] = useState(false)
     //apikey设置窗口显示控制
@@ -36,9 +44,9 @@ const MenuView = (props: MenuViewPropsType) => {
 
     // 获取会话列表
     useEffect(function () {
-        GetConversationList().then((list) => {
+        ConversationGetList().then((list) => {
             setConversationList(list)
-            setCurrentConversationId(0)
+            list.length > 0 && setCurrentConversationId(0)
         })
         GetConfig().then((config)=> {
             setApiKey(config.ApiKey)
@@ -64,7 +72,7 @@ const MenuView = (props: MenuViewPropsType) => {
             >
                 {conversationList.map(function (c: entities.Conversation, index: number): ReactNode {
                     return (
-                        <MenuItem value={index} key={c.UUID} icon={currentConversationId == index ? <PinFilledIcon /> :<PinIcon />}><div><span>{c.Title}</span></div></MenuItem>
+                        <MenuItem value={index} key={c.UUID} icon={currentConversationId == index ? <PinFilledIcon /> :<PinIcon />}><div ><span>{c.Title}</span></div></MenuItem>
                     )
                 })}
             </Menu>
@@ -91,7 +99,7 @@ const MenuView = (props: MenuViewPropsType) => {
                 confirmOnEnter={true}
                 onConfirm={() => {
                     if (newConversationTitle == "") {
-                        MessageDialog("error", "错误", "会话标题不能为空").catch((e) => {
+                        UtilMessageDialog("error", "错误", "会话标题不能为空").catch((e) => {
                             console.log("error", e)
                         })
                         return
@@ -110,11 +118,16 @@ const MenuView = (props: MenuViewPropsType) => {
             <Dialog
                 header="请输入apikey"
                 visible={apiKeyConfigVisible}
-                onClose={() => setApiKeyVisible(false)}
+                onClose={() => {
+                    GetConfig().then(config=> {
+                        setApiKey(config.ApiKey)
+                    })
+                    setApiKeyVisible(false)
+                }}
                 confirmOnEnter={true}
                 onConfirm={() => {
                     if (apiKey == "") {
-                        MessageDialog("error", "错误", "apiKey不能为空").catch((e) => {
+                        UtilMessageDialog("error", "错误", "apiKey不能为空").catch((e) => {
                             console.log("error", e)
                         })
                         return
@@ -130,7 +143,12 @@ const MenuView = (props: MenuViewPropsType) => {
             <Dialog
                 header="请输入代理地址"
                 visible={proxyConfigVisible}
-                onClose={() => setProxyConfigVisible(false)}
+                onClose={() => {
+                    GetConfig().then(config=> {
+                        setProxyAddr(config.ProxyAddr)
+                    })
+                    setProxyConfigVisible(false)
+                }}
                 confirmOnEnter={true}
                 onConfirm={() => {
                     SetProxy(proxyAddr)
@@ -140,8 +158,17 @@ const MenuView = (props: MenuViewPropsType) => {
                 <Input value={proxyAddr} placeholder="代理地址" onChange={(v: string) => {
                     setProxyAddr(v.trim())
                 }}></Input>
-                <Input value={googleAddr} disabled style={{width:"70%",float:"left"}}></Input>
-                <Button style={{float:"right",width:"30%"}}>测试代理</Button>
+                <Input value={proxyTestAddr} style={{width:"70%",float:"left"}} onChange={setProxyTestAddr}></Input>
+                <Button style={{float:"right",width:"30%"}} onClick={()=> {
+                    if (proxyAddr.length == 0) {
+                        UtilMessageDialog("error","错误","代理地址不能为空")
+                        return
+                    }
+                    CheckProxy(proxyAddr,proxyTestAddr).then((rsp:string)=> {
+                        MessagePlugin.info(rsp)
+                    })
+                }
+                }>测试代理</Button>
             </Dialog>
         </>);
 }

@@ -8,19 +8,25 @@ import (
 	"gorm.io/gorm"
 )
 
+func NewConversationDao() ConversationDao {
+	return &conversationDao{db: sqlite.GetConn()}
+}
+
 type (
 	ConversationDao interface {
 		NewOne(uuid, title string) (record entities.Conversation, err error)
 		GetList(title, uuid string, id, page, limit int) (total int64, cList []entities.Conversation, err error)
 		DelOneByUUID(uuid string) error
+		UpdateConversation(uuid string, conversation entities.Conversation) error
 	}
 	conversationDao struct {
 		db *gorm.DB
 	}
 )
 
-func NewConversationDao() ConversationDao {
-	return &conversationDao{db: sqlite.GetConn()}
+func (c *conversationDao) UpdateConversation(uuid string, conversation entities.Conversation) error {
+	tx := c.db.Model(&entities.Conversation{}).Where("uuid = ?", uuid).Updates(conversation)
+	return tx.Error
 }
 
 func (c *conversationDao) NewOne(uuid, title string) (record entities.Conversation, err error) {

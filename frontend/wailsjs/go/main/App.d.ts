@@ -3,16 +3,22 @@
 import {entities} from '../models';
 import {openai} from '../models';
 
-export function Conversation(arg1:string,arg2:string,arg3:string):Promise<string>;
+export function Chat(arg1:string,arg2:string,arg3:string):Promise<string>;
 
-export function GetConfig():Promise<entities.Config>;
+export function ConfigGet():Promise<entities.Config>;
 
-export function GetConversationList():Promise<Array<entities.Conversation>>;
+export function ConfigSetApiKey(arg1:string):Promise<boolean>;
 
-export function GetMessageList(arg1:string,arg2:string):Promise<Array<openai.ChatCompletionMessage>>;
+export function ConfigSetProxy(arg1:string):Promise<boolean>;
 
-export function MessageDialog(arg1:string,arg2:string,arg3:string):Promise<void>;
+export function ConversationDelete(arg1:string):Promise<string>;
 
-export function SetApiKey(arg1:string):Promise<boolean>;
+export function ConversationGetList():Promise<Array<entities.Conversation>>;
 
-export function SetProxy(arg1:string):Promise<boolean>;
+export function ConversationRename(arg1:string,arg2:string):Promise<string>;
+
+export function MessageGetList(arg1:string,arg2:string):Promise<Array<openai.ChatCompletionMessage>>;
+
+export function UtilCheckProxy(arg1:string,arg2:string):Promise<string>;
+
+export function UtilMessageDialog(arg1:string,arg2:string,arg3:string):Promise<void>;

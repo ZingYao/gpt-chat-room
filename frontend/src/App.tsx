@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 import {marked} from 'marked';
 import './App.css';
-import {Conversation, GetMessageList, MessageDialog} from "../wailsjs/go/main/App";
+import {Chat, UtilMessageDialog, MessageGetList} from "../wailsjs/go/main/App";
 import {Button, Col, Form, Input, Layout, MenuValue, MessagePlugin, Row} from 'tdesign-react'
 import {openai} from "../wailsjs/go/models";
 import {entities} from "./models";
@@ -44,9 +44,9 @@ function App() {
         }
         let conversation = conversationList[currentConversationId]
         if (conversation.UUID == "") {
-            MessageDialog("error", "错误", `对话选择错误(${currentConversationId})`)
+            UtilMessageDialog("error", "错误", `对话选择错误(${currentConversationId})`)
         }
-        GetMessageList(conversation.UUID, conversation.Title).then(l => setConversationMessageList(l))
+        MessageGetList(conversation.UUID, conversation.Title).then(l => setConversationMessageList(l))
     }, [currentConversationId])
     //选择会话事件
     let onConversationChange = (e: MenuValue) => {
@@ -65,7 +65,7 @@ function App() {
     let submitQuestion = () => {
         // 是否选择会话的判定
         if (currentConversationId == -1) {
-            MessageDialog("error", "错误", "请选择对话框后发起提问")
+            UtilMessageDialog("error", "错误", "请选择对话框后发起提问")
             return
         }
         let question = currentQuestion
@@ -86,7 +86,7 @@ function App() {
         conversationMessageList = conversationMessageList.concat([{role: "user", name: "fiona", content: question}])
         setConversationMessageList(conversationMessageList)
         //提交会话请求
-        Conversation(conversation.UUID, conversation.Title, question).then((res: string) => {
+        Chat(conversation.UUID, conversation.Title, question).then((res: string) => {
             conversationMessageList = conversationMessageList.concat([{role: "assistant", name: "zing", content: res}])
             //会话结果添加
             setConversationMessageList(conversationMessageList)
