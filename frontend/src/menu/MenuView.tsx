@@ -1,6 +1,7 @@
 import {entities} from "../models";
 import {ReactNode, useEffect, useState} from "react";
 import {Button, Dialog, Input, Menu, MenuValue} from "tdesign-react";
+import { PinIcon,PinFilledIcon } from 'tdesign-icons-react';
 import {GetConfig, GetConversationList, MessageDialog, SetApiKey, SetProxy} from "../../wailsjs/go/main/App";
 import {v4 as uuid} from "uuid";
 
@@ -10,12 +11,13 @@ type MenuViewPropsType = {
     onChange: (value: MenuValue) => void,
     defaultSelected: MenuValue | undefined,
     conversationList: entities.Conversation[],
+    currentConversationId:number
     setConversationList: (list: entities.Conversation[]) => void,
     setCurrentConversationId: (id: number) => void
 }
 
 const MenuView = (props: MenuViewPropsType) => {
-    const {onChange, defaultSelected, setCurrentConversationId, setConversationList} = props
+    const {onChange, defaultSelected,currentConversationId, setCurrentConversationId, setConversationList} = props
     const googleAddr = "https://www.google.com/"
     let {conversationList} = props
 
@@ -41,7 +43,6 @@ const MenuView = (props: MenuViewPropsType) => {
         GetConfig().then((config)=> {
             setApiKey(config.ApiKey)
             setProxyAddr(config.ProxyAddr)
-            console.log("config",config)
         })
     }, [])
 
@@ -58,11 +59,12 @@ const MenuView = (props: MenuViewPropsType) => {
                     whiteSpace: "nowrap",
                 }}
                 onChange={onChange}
+                defaultValue={0}
                 value={defaultSelected}
             >
                 {conversationList.map(function (c: entities.Conversation, index: number): ReactNode {
                     return (
-                        <MenuItem value={index} key={c.UUID}>{c.Title}</MenuItem>
+                        <MenuItem value={index} key={c.UUID} icon={currentConversationId == index ? <PinFilledIcon /> :<PinIcon />}><div><span>{c.Title}</span></div></MenuItem>
                     )
                 })}
             </Menu>

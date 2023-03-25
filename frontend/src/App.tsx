@@ -100,7 +100,7 @@ function App() {
                 <Aside style={{height: "100%", borderRight: "1px solid #fff"}}>
                     <MenuView onChange={onConversationChange} conversationList={conversationList}
                               defaultSelected={currentConversationId} setConversationList={setConversationList}
-                              setCurrentConversationId={setCurrentConversationId}/>
+                              setCurrentConversationId={setCurrentConversationId} currentConversationId={currentConversationId}/>
                 </Aside>
                 <Layout style={{height: "100vh"}}>
                     <Header style={{height: "80px"}}>
