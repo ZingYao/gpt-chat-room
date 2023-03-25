@@ -6,6 +6,10 @@ export function Conversation(arg1, arg2, arg3) {
   return window['go']['main']['App']['Conversation'](arg1, arg2, arg3);
 }
 
+export function GetConfig() {
+  return window['go']['main']['App']['GetConfig']();
+}
+
 export function GetConversationList() {
   return window['go']['main']['App']['GetConversationList']();
 }
@@ -16,4 +20,12 @@ export function GetMessageList(arg1, arg2) {
 
 export function MessageDialog(arg1, arg2, arg3) {
   return window['go']['main']['App']['MessageDialog'](arg1, arg2, arg3);
+}
+
+export function SetApiKey(arg1) {
+  return window['go']['main']['App']['SetApiKey'](arg1);
+}
+
+export function SetProxy(arg1) {
+  return window['go']['main']['App']['SetProxy'](arg1);
 }

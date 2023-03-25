@@ -1,12 +1,12 @@
 package sqlite
 
 import (
+	"fiona_work_support/config"
 	"fiona_work_support/model/entities"
 	"fmt"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"os"
-	"os/user"
 )
 
 var dbDir string
@@ -17,12 +17,8 @@ const dbFileName = "data.db"
 var conn *gorm.DB
 
 func init() {
-	currentUser, err := user.Current()
-	if err != nil {
-		panic(err)
-	}
-	dir := currentUser.HomeDir
-	dbDir = fmt.Sprintf("%s%cfiona_work_helper", dir, os.PathSeparator)
+	var err error
+	dbDir = config.GetWorkDir()
 	if _, err = os.Stat(dbDir); err != nil && os.IsNotExist(err) {
 		err = os.MkdirAll(dbDir, os.FileMode(0755))
 		if err != nil {
@@ -43,6 +39,7 @@ func init() {
 	}
 	conn.AutoMigrate(&entities.Conversation{})
 	conn.AutoMigrate(&entities.Message{})
+	conn.AutoMigrate(&entities.Config{})
 }
 
 func GetConn() *gorm.DB {

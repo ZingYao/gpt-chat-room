@@ -2,26 +2,28 @@ package main
 
 import (
 	"context"
+	"fiona_work_support/config"
 	"fiona_work_support/model/dao"
 	"fiona_work_support/model/entities"
 	"fmt"
 	"github.com/pkg/errors"
 	"github.com/sashabaranov/go-openai"
-	"github.com/wailsapp/wails/v2/pkg/menu"
-	"github.com/wailsapp/wails/v2/pkg/menu/keys"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"gorm.io/gorm"
 	"log"
 	"net/http"
 	"net/url"
-	"time"
 )
 
 // App struct
 type App struct {
-	ctx          context.Context
-	client       *openai.Client
-	openaiConfig openai.ClientConfig
+	ctx             context.Context
+	client          *openai.Client
+	config          entities.Config
+	userName        string
+	messageDao      dao.MessageDao
+	conversationDao dao.ConversationDao
+	configDao       dao.ConfigDao
 }
 
 var conversationList map[string]Conversation
@@ -38,82 +40,36 @@ func NewApp() *App {
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	var err error
 	// 设置主题
 	runtime.WindowSetSystemDefaultTheme(a.ctx)
-
-	//设置菜单
-	mainMenu := menu.NewMenu()
-	//应用菜单
-	appMenu := menu.AppMenu()
-	//编辑菜单
-	editMenu := menu.EditMenu()
-	//菜单加入根
-	mainMenu.Items = append(mainMenu.Items, appMenu, editMenu)
-	//自定义设置菜单
-	settingMenu := mainMenu.AddSubmenu("设置")
-	settingMenu.AddText("设置ApiKey", keys.CmdOrCtrl("o"), func(data *menu.CallbackData) {
-		runtime.LogInfof(ctx, "[menu] menu was selected:%q", data.MenuItem.Label)
-		str, err := runtime.ClipboardGetText(ctx)
-		if err != nil {
-			runtime.MessageDialog(ctx, runtime.MessageDialogOptions{
-				Type:    runtime.ErrorDialog,
-				Title:   "错误",
-				Message: "从剪切板中获取apikey失败",
-			})
-			return
-		}
-		runtime.LogInfof(ctx, "[menu] get clipboard context:%q", str)
-		var proxy http.RoundTripper
-		if a.openaiConfig.HTTPClient != nil {
-			proxy = a.openaiConfig.HTTPClient.Transport
-		}
-		config := openai.DefaultConfig(str)
-		config.HTTPClient.Transport = proxy
-		a.openaiConfig = config
-		a.client = openai.NewClientWithConfig(a.openaiConfig)
-	})
-	settingMenu.AddText("设置代理", keys.CmdOrCtrl("p"), func(data *menu.CallbackData) {
-		if a.openaiConfig.HTTPClient == nil {
-			runtime.MessageDialog(ctx, runtime.MessageDialogOptions{
-				Type:    runtime.ErrorDialog,
-				Title:   "错误",
-				Message: fmt.Sprintf("请先配置Apikey"),
-			})
-		}
-		runtime.LogInfof(ctx, "[menu] menu was selected:%q", data.MenuItem.Label)
-		str, err := runtime.ClipboardGetText(ctx)
-		if err != nil {
-			runtime.MessageDialog(ctx, runtime.MessageDialogOptions{
-				Type:    runtime.ErrorDialog,
-				Title:   "错误",
-				Message: fmt.Sprintf("从剪切板中获取代理失败(%v)", err),
-			})
-			return
-		}
-		runtime.LogInfof(ctx, "[menu] get clipboard context:%q", str)
-		proxy, err := url.Parse(str)
-		if err != nil {
-			runtime.MessageDialog(ctx, runtime.MessageDialogOptions{
-				Type:    runtime.ErrorDialog,
-				Title:   "错误",
-				Message: fmt.Sprintf("错误的代理:%q(%v)", str, err),
-			})
-			return
-		}
-
-		a.openaiConfig.HTTPClient.Transport = &http.Transport{
-			Proxy:                 http.ProxyURL(proxy),
-			MaxIdleConnsPerHost:   10,
-			ResponseHeaderTimeout: time.Second * time.Duration(60),
-		}
-		a.client = openai.NewClientWithConfig(a.openaiConfig)
-	})
-	runtime.MenuSetApplicationMenu(ctx, mainMenu)
 	conversationList = make(map[string]Conversation)
+	a.configDao = dao.NewConfigDao()
+	a.messageDao = dao.NewMessageDao()
+	a.conversationDao = dao.NewConversationDao()
+	a.userName = config.GetUserName()
+	a.config, err = a.configDao.GetConfig(a.userName)
+	if err != nil {
+		panic(err)
+	}
+	a.reloadClient()
+}
+
+func (a *App) reloadClient() {
+	openaiConfig := openai.DefaultConfig(a.config.ApiKey)
+	proxy, err := url.Parse(a.config.ProxyAddr)
+	if err == nil {
+		openaiConfig.HTTPClient.Transport = &http.Transport{
+			Proxy: http.ProxyURL(proxy),
+		}
+	} else {
+
+		runtime.LogWarningf(a.ctx, "proxy %s parse failed %v", a.config.ProxyAddr, err)
+	}
+	a.client = openai.NewClientWithConfig(openaiConfig)
 }
 
 func (a *App) Conversation(uuid, title, question string) (result string) {
-	messageDao := dao.NewMessageDao()
 	var conversation Conversation
 	if a.client == nil {
 		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
@@ -158,7 +114,7 @@ func (a *App) Conversation(uuid, title, question string) (result string) {
 	answer.Name = "zing"
 	conversation.list = append(conversation.list, answer)
 	conversationList[uuid] = conversation
-	messageDao.NewMessageBatch(conversation.id, uuid, conversation.list[len(conversation.list)-2:])
+	a.messageDao.NewMessageBatch(conversation.id, uuid, conversation.list[len(conversation.list)-2:])
 	fmt.Printf("question:%s\nanswer:%s\n", question, answer.Content)
 	return answer.Content
 }
@@ -181,11 +137,9 @@ func (a *App) MessageDialog(msgType, title, msg string) error {
 
 func (a *App) getConversation(uuid, title string) (conversation Conversation, err error) {
 	var exists bool
-	conversationDao := dao.NewConversationDao()
-	messageDao := dao.NewMessageDao()
 	var currentConversation entities.Conversation
 	if conversation, exists = conversationList[uuid]; !exists {
-		total, cL, err := conversationDao.GetList("", uuid, 0, 1, 1)
+		total, cL, err := a.conversationDao.GetList("", uuid, 0, 1, 1)
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
 				Type:    runtime.ErrorDialog,
@@ -195,12 +149,12 @@ func (a *App) getConversation(uuid, title string) (conversation Conversation, er
 			return conversation, err
 		}
 		if errors.Is(err, gorm.ErrRecordNotFound) || total == 0 {
-			currentConversation, _ = conversationDao.NewOne(uuid, title)
+			currentConversation, _ = a.conversationDao.NewOne(uuid, title)
 		}
 		if currentConversation.ID == 0 {
 			currentConversation = cL[0]
 		}
-		msgList, err := messageDao.GetMessageListByUUID(uuid)
+		msgList, err := a.messageDao.GetMessageListByUUID(uuid)
 		if err != nil || len(msgList) == 0 {
 			conversation = Conversation{
 				id: currentConversation.ID,
@@ -212,7 +166,7 @@ func (a *App) getConversation(uuid, title string) (conversation Conversation, er
 					},
 				},
 			}
-			messageDao.NewMessageBatch(currentConversation.ID, uuid, conversation.list)
+			a.messageDao.NewMessageBatch(currentConversation.ID, uuid, conversation.list)
 		} else {
 			var l []openai.ChatCompletionMessage
 			for _, item := range msgList {
@@ -246,8 +200,7 @@ func (a *App) GetMessageList(uuid, title string) []openai.ChatCompletionMessage 
 }
 
 func (a *App) GetConversationList() []entities.Conversation {
-	conversationDao := dao.NewConversationDao()
-	_, conversationList, err := conversationDao.GetList("", "", 0, 1, 100)
+	_, conversationList, err := a.conversationDao.GetList("", "", 0, 1, 100)
 	if err != nil {
 		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
 			Type:    runtime.ErrorDialog,
@@ -257,4 +210,28 @@ func (a *App) GetConversationList() []entities.Conversation {
 		return make([]entities.Conversation, 0)
 	}
 	return conversationList
+}
+
+func (a *App) GetConfig() entities.Config {
+	return a.config
+}
+
+func (a *App) SetApiKey(apiKey string) bool {
+	err := a.configDao.SetConfig(a.userName, entities.Config{ApiKey: apiKey})
+	if err != nil {
+		return false
+	}
+	a.config.ApiKey = apiKey
+	a.reloadClient()
+	return true
+}
+
+func (a *App) SetProxy(proxyAddr string) bool {
+	err := a.configDao.SetConfig(a.userName, entities.Config{ProxyAddr: proxyAddr})
+	if err != nil {
+		return false
+	}
+	a.config.ProxyAddr = proxyAddr
+	a.reloadClient()
+	return true
 }

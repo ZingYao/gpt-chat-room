@@ -5,8 +5,14 @@ import {openai} from '../models';
 
 export function Conversation(arg1:string,arg2:string,arg3:string):Promise<string>;
 
+export function GetConfig():Promise<entities.Config>;
+
 export function GetConversationList():Promise<Array<entities.Conversation>>;
 
 export function GetMessageList(arg1:string,arg2:string):Promise<Array<openai.ChatCompletionMessage>>;
 
 export function MessageDialog(arg1:string,arg2:string,arg3:string):Promise<void>;
+
+export function SetApiKey(arg1:string):Promise<boolean>;
+
+export function SetProxy(arg1:string):Promise<boolean>;

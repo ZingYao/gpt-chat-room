@@ -9,32 +9,32 @@ import (
 )
 
 type (
-	Conversation interface {
+	ConversationDao interface {
 		NewOne(uuid, title string) (record entities.Conversation, err error)
 		GetList(title, uuid string, id, page, limit int) (total int64, cList []entities.Conversation, err error)
 		DelOneByUUID(uuid string) error
 	}
-	conversation struct {
+	conversationDao struct {
 		db *gorm.DB
 	}
 )
 
-func NewConversationDao() Conversation {
-	return &conversation{db: sqlite.GetConn()}
+func NewConversationDao() ConversationDao {
+	return &conversationDao{db: sqlite.GetConn()}
 }
 
-func (c *conversation) NewOne(uuid, title string) (record entities.Conversation, err error) {
+func (c *conversationDao) NewOne(uuid, title string) (record entities.Conversation, err error) {
 	record.UUID = uuid
 	record.Title = title
 	rsp := c.db.Create(&record)
 	if rsp.Error != nil {
-		log.Infof("create conversation has an error(%v)", rsp.Error)
+		log.Infof("create conversationDao has an error(%v)", rsp.Error)
 		err = rsp.Error
 	}
 	return
 }
 
-func (c *conversation) GetList(title, uuid string, id, page, limit int) (total int64, cList []entities.Conversation, err error) {
+func (c *conversationDao) GetList(title, uuid string, id, page, limit int) (total int64, cList []entities.Conversation, err error) {
 	query := c.db.Model(&entities.Conversation{})
 	if title != "" {
 		query = query.Where("title like ?", fmt.Sprintf("%%%s%%", title))
@@ -58,7 +58,7 @@ func (c *conversation) GetList(title, uuid string, id, page, limit int) (total i
 	return
 }
 
-func (c *conversation) DelOneByUUID(uuid string) error {
+func (c *conversationDao) DelOneByUUID(uuid string) error {
 	rsp := c.db.Where("uuid = ? ", uuid).Delete(&entities.Conversation{})
 	if rsp.Error != nil {
 		return rsp.Error

@@ -8,20 +8,20 @@ import (
 )
 
 type (
-	Message interface {
+	MessageDao interface {
 		NewMessageBatch(cid uint, uuid string, data []openai.ChatCompletionMessage) error
 		GetMessageListByUUID(uuid string) (list []entities.Message, err error)
 	}
-	message struct {
+	messageDao struct {
 		db *gorm.DB
 	}
 )
 
-func NewMessageDao() Message {
-	return &message{db: sqlite.GetConn()}
+func NewMessageDao() MessageDao {
+	return &messageDao{db: sqlite.GetConn()}
 }
 
-func (m *message) NewMessageBatch(cid uint, uuid string, data []openai.ChatCompletionMessage) error {
+func (m *messageDao) NewMessageBatch(cid uint, uuid string, data []openai.ChatCompletionMessage) error {
 	var msg []entities.Message
 	for _, item := range data {
 		msg = append(msg, entities.Message{
@@ -39,7 +39,7 @@ func (m *message) NewMessageBatch(cid uint, uuid string, data []openai.ChatCompl
 	return nil
 }
 
-func (m *message) GetMessageListByUUID(uuid string) (list []entities.Message, err error) {
+func (m *messageDao) GetMessageListByUUID(uuid string) (list []entities.Message, err error) {
 	rsp := m.db.Where("cuuid = ?", uuid).Find(&list)
 	if rsp.Error != nil {
 		err = rsp.Error

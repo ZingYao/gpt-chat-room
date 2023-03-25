@@ -2,12 +2,15 @@ package main
 
 import (
 	"embed"
+	"fiona_work_support/config"
 	_ "fiona_work_support/model/sqlite"
+	"fmt"
 	"github.com/wailsapp/wails/v2"
+	"github.com/wailsapp/wails/v2/pkg/logger"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	"github.com/wailsapp/wails/v2/pkg/options/mac"
-	"github.com/wailsapp/wails/v2/pkg/options/windows"
+	"time"
 )
 
 //go:embed all:frontend/dist
@@ -27,10 +30,6 @@ func main() {
 		},
 		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
 		OnStartup:        app.startup,
-		Windows: &windows.Options{
-			WebviewIsTransparent: true,
-			WindowIsTranslucent:  false,
-		},
 		Mac: &mac.Options{
 			TitleBar: &mac.TitleBar{
 				TitlebarAppearsTransparent: true,
@@ -46,6 +45,7 @@ func main() {
 				Icon:    nil,
 			},
 		},
+		Logger: logger.NewFileLogger(fmt.Sprintf("%s/%s.log", config.GetWorkDir(), time.Now().Format("20060102"))),
 		Bind: []interface{}{
 			app,
 		},

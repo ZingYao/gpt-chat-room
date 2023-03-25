@@ -15,4 +15,19 @@ export namespace entities {
             this.UUID = source["UUID"];
         }
     }
+    export class Config {
+        UserName:string;
+        ApiKey:string;
+        ProxyAddr:string;
+
+        static createFrom (source: any= {}) {
+            return new Config(source)
+        }
+        constructor(source: any = {}) {
+            if ('string' === typeof source) source = JSON.parse(source);
+            this.UserName = source["UserName"]
+            this.ApiKey = source["ApiKey"]
+            this.ProxyAddr = source["ProxyAddr"]
+        }
+    }
 }
