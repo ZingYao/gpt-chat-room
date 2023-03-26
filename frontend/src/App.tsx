@@ -1,17 +1,17 @@
-import { useEffect, useState } from 'react';
-import { marked } from 'marked';
+import {useEffect, useState} from 'react';
+import {marked} from 'marked';
 import './App.css';
-import { OpenAiChat, UtilMessageDialog, MessageGetList } from "../wailsjs/go/main/App";
-import { EventsOn } from '../wailsjs/runtime/runtime'
-import { Button, Col, Form, Input, Layout, MenuValue, MessagePlugin, Row } from 'tdesign-react'
-import { openai } from "../wailsjs/go/models";
-import { entities } from "./models";
+import {MessageGetList, OpenAiChat, UtilMessageDialog} from "../wailsjs/go/main/App";
+import {EventsOn} from '../wailsjs/runtime/runtime'
+import {Button, Col, Form, Input, Layout, MenuValue, MessagePlugin, Row} from 'tdesign-react'
+import {openai} from "../wailsjs/go/models";
+import {entities} from "./models";
 import hljs from "highlight.js"
 import "highlight.js/styles/github.css"
 import MenuView from './menu/MenuView';
 
-const { FormItem } = Form
-const { Header, Aside, Footer, Content } = Layout
+const {FormItem} = Form
+const {Header, Aside, Footer, Content} = Layout
 
 function App() {
     //会话列表
@@ -22,9 +22,10 @@ function App() {
     let [conversationMessageList, setConversationMessageList] = useState<openai.ChatCompletionMessage[]>([])
     //当前输入的问题
     let [currentQuestion, setCurrentQuestion] = useState("")
+    let [overResponse,setOverResponse] = useState(true)
 
     let [form] = Form.useForm();
-    let [lastMsg,setLastMsg]  = useState("")
+    let [lastMsg, setLastMsg] = useState("")
 
 
     // 设置markdown高亮
@@ -36,22 +37,23 @@ function App() {
 
     //聊天页面定位到最下方
     useEffect(function () {
-        scrollToBottom()
-    }, [conversationMessageList])
+        setTimeout(() => {
+            scrollToBottom()
+        }, 100)
+    }, [lastMsg])
 
     useEffect(() => {
-        console.log(lastMsg)
-                let lm = conversationMessageList[conversationMessageList.length - 1]
-                if (lm && lm.role == "assistant") {
-                    lm.content = lastMsg
-                    conversationMessageList[conversationMessageList.length - 1] = lm
-                }
-                setConversationMessageList(conversationMessageList)
-    },[lastMsg])
+        let lm = conversationMessageList[conversationMessageList.length - 1]
+        if (lm && lm.role == "assistant") {
+            lm.content = lastMsg
+            conversationMessageList[conversationMessageList.length - 1] = lm
+        }
+        setConversationMessageList(conversationMessageList)
+    }, [lastMsg])
 
 
     EventsOn("stream-msg", (data: string) => {
-         setLastMsg(`${lastMsg}${data}`)
+        setLastMsg(`${lastMsg}${data}`)
     })
 
     //变更会话
@@ -93,36 +95,40 @@ function App() {
             return;
         }
         //问题防止重复提问判定
-        if (conversationMessageList.length != 0 && conversationMessageList[conversationMessageList.length - 1].role == "user") {
+        if (!overResponse) {
             MessagePlugin.warning("上一个问题还没有解答完成，请稍后")
             return;
         }
+        setOverResponse(false)
         setLastMsg("")
         //获取当前会话信息
         let conversation = conversationList[currentConversationId]
         //添加会话信息
-        conversationMessageList = conversationMessageList.concat([{ role: "user", name: "fiona", content: question }])
+        conversationMessageList = conversationMessageList.concat([{role: "user", name: "fiona", content: question}])
         setConversationMessageList(conversationMessageList)
         //提交会话请求
-        OpenAiChat(conversation.UUID, question, 2048).then((res: string) => { })
-        conversationMessageList = conversationMessageList.concat([{ role: "assistant", name: "zing", content: "" }])
+        OpenAiChat(conversation.UUID, question, 2048).then((res: string) => {
+            setOverResponse(true)
+            setConversationMessageList(conversationMessageList)
+        })
+        conversationMessageList = conversationMessageList.concat([{role: "assistant", name: "zing", content: ""}])
         //会话结果添加
         setConversationMessageList(conversationMessageList)
-        console.log("submit",conversationMessageList.length)
     }
 
     return (
-        <div style={{ marginTop: "30px", marginBottom: "10px", overflow: "hidden", height: "calc(100vh - 40px)" }}
-            className="canDrag"
-            id="App">
-            <Layout style={{ height: "100vh" }}>
-                <Aside style={{ height: "100%", borderRight: "1px solid #fff" }}>
+        <div style={{marginTop: "30px", marginBottom: "10px", overflow: "hidden", height: "calc(100vh - 40px)"}}
+             className="canDrag"
+             id="App">
+            <Layout style={{height: "100vh"}}>
+                <Aside style={{height: "100%", borderRight: "1px solid #fff"}}>
                     <MenuView onChange={onConversationChange} conversationList={conversationList}
-                        defaultSelected={currentConversationId} setConversationList={setConversationList}
-                        setCurrentConversationId={setCurrentConversationId} currentConversationId={currentConversationId} />
+                              defaultSelected={currentConversationId} setConversationList={setConversationList}
+                              setCurrentConversationId={setCurrentConversationId}
+                              currentConversationId={currentConversationId}/>
                 </Aside>
-                <Layout style={{ height: "100vh" }}>
-                    <Header style={{ height: "80px" }}>
+                <Layout style={{height: "100vh"}}>
+                    <Header style={{height: "80px"}}>
                         <h1>{conversationList[currentConversationId]?.Title ?? "等待创建会话"}</h1></Header>
                     <Content className="cantDrag">
                         <div id="chatWindow" style={{
@@ -132,19 +138,19 @@ function App() {
                             padding: "10px"
                         }}>
                             <div className="messages">
-                                {conversationMessageList.map((item,index) => {
+                                {conversationMessageList.map((item, index) => {
                                     if (item.content.trim().length == 0) {
                                         return
                                     }
                                     switch (item.role) {
                                         case "assistant":
                                             return (<div key={index} className="message received"
-                                                dangerouslySetInnerHTML={{ __html: marked(item.content) }}>
+                                                         dangerouslySetInnerHTML={{__html: marked(item.content)}}>
                                             </div>)
                                         case "user":
                                             return (
                                                 <div key={index} className="message sent"
-                                                    dangerouslySetInnerHTML={{ __html: item.content }}>
+                                                     dangerouslySetInnerHTML={{__html: item.content}}>
                                                 </div>)
                                         case "system":
                                             return (<></>)
@@ -153,19 +159,20 @@ function App() {
                             </div>
                         </div>
                     </Content>
-                    <Footer style={{ height: "50px", marginBottom: "10px", backgroundColor: "rgba(250,250,250,1)" }} className="cantDrag">
+                    <Footer style={{height: "50px", marginBottom: "10px", backgroundColor: "rgba(250,250,250,1)"}}
+                            className="cantDrag">
                         <Form layout="vertical" onSubmit={submitQuestion} form={form}>
                             <Row key="editor">
                                 <Col span={11} key="input">
                                     <FormItem name="question">
                                         <Input value={currentQuestion} onChange={setCurrentQuestion}
-                                            onEnter={submitQuestion} />
+                                               onEnter={submitQuestion}/>
                                     </FormItem>
                                 </Col>
                                 <Col span={1} key="senderBtn">
-                                    <FormItem style={{ marginLeft: "5px", width: "100%" }}>
-                                        <Button theme="primary" type="submit" style={{ width: "100%" }}
-                                            disabled={currentConversationId == -1}>发送</Button>
+                                    <FormItem style={{marginLeft: "5px", width: "100%"}}>
+                                        <Button theme="primary" type="submit" style={{width: "100%"}}
+                                                disabled={currentConversationId == -1}>发送</Button>
                                     </FormItem>
                                 </Col>
                             </Row>
