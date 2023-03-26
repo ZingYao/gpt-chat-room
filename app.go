@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fiona_work_support/common"
 	"fiona_work_support/config"
 	"fiona_work_support/model/dao"
@@ -18,6 +17,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -103,15 +103,12 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 	var length int
 	maxToken := common.GetMaxToken(conversation.model)
 	conversation.list, length = common.GetConversationListByToken(conversation.list, maxToken-token)
-	fmt.Println(conversation.model, maxToken, token, length)
 	if maxToken-token-length <= 0 {
 		return "会话响应长度过短"
 	}
 	if len(conversation.list) == 1 {
 		return "会话过长，请新建会话后重试"
 	}
-	c, _ := json.Marshal(conversation.list)
-	fmt.Printf("list:%s", string(c))
 	stream, err := a.client.CreateChatCompletionStream(
 		a.ctx,
 		openai.ChatCompletionRequest{
@@ -134,14 +131,13 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 	var msg string
 	go func() {
 		for {
-			if errors.Is(err, io.EOF) {
-				return
-			}
 			m := msg
 			msg = ""
 			runtime.EventsEmit(a.ctx, "stream-msg", m)
-			fmt.Printf(m)
-			time.Sleep(500 * time.Millisecond)
+			if err != nil {
+				return
+			}
+			time.Sleep(300 * time.Millisecond)
 		}
 	}()
 	for {
@@ -165,6 +161,7 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 	conversation.list = append(conversation.list, answer)
 	conversationList[uuid] = conversation
 	a.messageDao.NewMessageBatch(conversation.id, uuid, conversation.list[len(conversation.list)-2:])
+	time.Sleep(300 * time.Millisecond)
 	return "success"
 }
 
@@ -173,14 +170,17 @@ func (a *App) OpenAiGetModelList() []string {
 	if err != nil {
 		return make([]string, 0)
 	}
-
 	modelList := make([]string, 0)
 	for _, item := range rsp.Models {
-		if item.Object == "model" && item.OwnedBy == "openai" {
+		if strings.Contains(item.Root, "3.5") || strings.Contains(item.Root, "gpt-4") {
 			modelList = append(modelList, item.Root)
 		}
 	}
 	return modelList
+}
+
+func (a *App) OpenAiGetMaxToken(model string) int {
+	return common.GetMaxToken(model)
 }
 
 func (a *App) UtilMessageDialog(msgType, title, msg string) error {
@@ -241,7 +241,7 @@ func (a *App) getConversation(uuid string) (conversation Conversation, err error
 		if errors.Is(err, gorm.ErrRecordNotFound) || total == 0 {
 			return conversation, fmt.Errorf("conversation:%s not exists(%v)", uuid, err)
 		}
-		if currentConversation.ID != 0 {
+		if cL[0].ID != 0 {
 			currentConversation = cL[0]
 		} else {
 			fmt.Printf("uuid:%s can't find conversation", uuid)

@@ -50,8 +50,6 @@ const MenuView = (props: MenuViewPropsType) => {
     let [conversationTitle, setConversationTitle] = useState("")
     //新建会话人设
     let [conversationCharacterSetting, setConversationCharacterSetting] = useState("")
-    //新建会话模型
-    let [conversationModel, setConversationModel] = useState("")
     //apikey设置窗口显示控制
     let [apiKeyConfigVisible, setApiKeyVisible] = useState(false)
     //代理设置窗口显示控制
@@ -62,6 +60,8 @@ const MenuView = (props: MenuViewPropsType) => {
     let [proxyAddr, setProxyAddr] = useState("")
     //模型列表
     let [modelList, setModelList] = useState<string[]>([])
+    //新建会话模型
+    let [conversationModel, setConversationModel] = useState(modelList[0])
 
     // 获取会话列表
     useEffect(function () {
@@ -154,6 +154,7 @@ const MenuView = (props: MenuViewPropsType) => {
                             setConversationList(conversationList)
                             setNewConversationVisible(false)
                             document.getElementById("conversationResetBtn")?.click()
+                            setConversationModel(modelList[0])
 
                             ConversationGetList().then((list) => {
                                 setConversationList(list)
@@ -162,7 +163,7 @@ const MenuView = (props: MenuViewPropsType) => {
                         })
                     }}
                 >
-                    <Form resetType={"empty"}>
+                    <Form resetType={"initial"}>
                         <FormItem label="会话标题" name="conversationTitle">
                             <Input placeholder="会话标题" onChange={(v: string) => {
                                 setConversationTitle(v.trim())
@@ -175,7 +176,7 @@ const MenuView = (props: MenuViewPropsType) => {
                                       }}></Textarea>
                         </FormItem>
                         <FormItem label="会话模型" name="conversationModel">
-                            <Select placeholder="会话模型" filterable
+                            <Select placeholder="会话模型" value={conversationModel} filterable defaultValue={modelList[0]}
                                     onChange={(m: SelectValue) => setConversationModel(m.toString())}>
                                 {modelList.sort().map((model: string, index: number) => (
                                     <Option key={index} value={model} label={model}></Option>

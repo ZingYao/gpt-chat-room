@@ -42,6 +42,10 @@ export function OpenAiChat(arg1, arg2, arg3) {
   return window['go']['main']['App']['OpenAiChat'](arg1, arg2, arg3);
 }
 
+export function OpenAiGetMaxToken(arg1) {
+  return window['go']['main']['App']['OpenAiGetMaxToken'](arg1);
+}
+
 export function OpenAiGetModelList() {
   return window['go']['main']['App']['OpenAiGetModelList']();
 }

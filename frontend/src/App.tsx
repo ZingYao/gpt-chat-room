@@ -1,14 +1,15 @@
 import {useEffect, useState} from 'react';
 import {marked} from 'marked';
 import './App.css';
-import {MessageGetList, OpenAiChat, UtilMessageDialog} from "../wailsjs/go/main/App";
+import {MessageGetList, OpenAiChat, OpenAiGetMaxToken, UtilMessageDialog} from "../wailsjs/go/main/App";
 import {EventsOn} from '../wailsjs/runtime/runtime'
-import {Button, Col, Form, Input, Layout, MenuValue, MessagePlugin, Row} from 'tdesign-react'
+import {Button, Col, Form, Input, Layout, MenuValue, MessagePlugin, Row, Select} from 'tdesign-react'
 import {openai} from "../wailsjs/go/models";
 import {entities} from "./models";
 import hljs from "highlight.js"
 import "highlight.js/styles/github.css"
 import MenuView from './menu/MenuView';
+import Option from "tdesign-react/es/select/base/Option";
 
 const {FormItem} = Form
 const {Header, Aside, Footer, Content} = Layout
@@ -22,7 +23,9 @@ function App() {
     let [conversationMessageList, setConversationMessageList] = useState<openai.ChatCompletionMessage[]>([])
     //当前输入的问题
     let [currentQuestion, setCurrentQuestion] = useState("")
-    let [overResponse,setOverResponse] = useState(true)
+    let [overResponse, setOverResponse] = useState(true)
+    let [conversationToken, setConversationToken] = useState("min")
+    let maxToken = 512
 
     let [form] = Form.useForm();
     let [lastMsg, setLastMsg] = useState("")
@@ -40,9 +43,12 @@ function App() {
         setTimeout(() => {
             scrollToBottom()
         }, 100)
-    }, [conversationMessageList,lastMsg])
+    }, [conversationMessageList, lastMsg])
 
     useEffect(() => {
+        if (lastMsg == ""){
+            return
+        }
         let lm = conversationMessageList[conversationMessageList.length - 1]
         if (lm && lm.role == "assistant") {
             lm.content = lastMsg
@@ -66,6 +72,9 @@ function App() {
             UtilMessageDialog("error", "错误", `对话选择错误(${currentConversationId})`)
         }
         MessageGetList(conversation.UUID).then(l => setConversationMessageList(l))
+        OpenAiGetMaxToken(conversation.ChatModel).then((t: number) => {
+            maxToken = t
+        })
     }, [currentConversationId, conversationList])
     //选择会话事件
     let onConversationChange = (e: MenuValue) => {
@@ -88,7 +97,6 @@ function App() {
             return
         }
         let question = currentQuestion
-        form.reset()
         //消息是否为空的判定
         if (question.trim() == "") {
             MessagePlugin.warning("请输入问题后提问")
@@ -99,23 +107,34 @@ function App() {
             MessagePlugin.warning("上一个问题还没有解答完成，请稍后")
             return;
         }
+        let token = 512
+        switch (conversationToken) {
+            case "mid":
+                token = maxToken / 2
+                break
+            case "max":
+                token = maxToken
+        }
         setOverResponse(false)
         setLastMsg("")
         //获取当前会话信息
         let conversation = conversationList[currentConversationId]
-        console.log("conversation",conversation)
         //添加会话信息
         conversationMessageList = conversationMessageList.concat([{role: "user", name: "fiona", content: question}])
         setConversationMessageList(conversationMessageList)
         //提交会话请求
-        OpenAiChat(conversation.UUID, question, 2048).then((res: string) => {
+        OpenAiChat(conversation.UUID, question, token).then((res: string) => {
             setOverResponse(true)
             setConversationMessageList(conversationMessageList)
-            MessagePlugin.info(res)
+            setLastMsg("")
+            if (res != "success") {
+                MessagePlugin.info(res)
+            }
         })
         conversationMessageList = conversationMessageList.concat([{role: "assistant", name: "zing", content: ""}])
         //会话结果添加
         setConversationMessageList(conversationMessageList)
+        form.reset()
     }
 
     return (
@@ -165,7 +184,15 @@ function App() {
                             className="cantDrag">
                         <Form layout="vertical" onSubmit={submitQuestion} form={form}>
                             <Row key="editor">
-                                <Col span={11} key="input">
+                                <Col span={2} key="token">
+                                    <Select value={conversationToken} defaultValue="min" placeholder="会话长度"
+                                            onChange={(v) => setConversationToken(v ?v.toString():"min")} clearable>
+                                        <Option key={0} value="min" label="少量"/>
+                                        <Option key={1} value="mid" label="中等"/>
+                                        <Option key={2} value="max" label="最大"/>
+                                    </Select>
+                                </Col>
+                                <Col span={9} key="input">
                                     <FormItem name="question">
                                         <Input value={currentQuestion} onChange={setCurrentQuestion}
                                                onEnter={submitQuestion}/>

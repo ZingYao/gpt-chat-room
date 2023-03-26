@@ -23,6 +23,8 @@ export function MessageGetList(arg1:string):Promise<Array<openai.ChatCompletionM
 
 export function OpenAiChat(arg1:string,arg2:string,arg3:number):Promise<string>;
 
+export function OpenAiGetMaxToken(arg1:string):Promise<number>;
+
 export function OpenAiGetModelList():Promise<Array<string>>;
 
 export function UtilCheckProxy(arg1:string,arg2:string):Promise<string>;
