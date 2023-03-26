@@ -117,6 +117,7 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 		return ""
 	}
 	defer stream.Close()
+	var responseMsg string
 	var msg string
 	go func() {
 		for {
@@ -135,18 +136,23 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 		response, err = stream.Recv()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				return "success"
+				break
 			}
 			return fmt.Sprintf("openai返回了一个错误(%v)", err)
 		}
 		msg = msg + response.Choices[0].Delta.Content
+		responseMsg = responseMsg + response.Choices[0].Delta.Content
 	}
-	// answer := rsp.Choices[0].Message
-	// answer.Name = openai.ChatMessageRoleAssistant
-	// conversation.list = append(conversation.list, answer)
-	// conversationList[uuid] = conversation
-	// a.messageDao.NewMessageBatch(conversation.id, uuid, conversation.list[len(conversation.list)-2:])
-	// return answer.Content
+	answer := openai.ChatCompletionMessage{
+		Role:    openai.ChatMessageRoleAssistant,
+		Content: responseMsg,
+		Name:    openai.ChatMessageRoleAssistant,
+	}
+	answer.Name = openai.ChatMessageRoleAssistant
+	conversation.list = append(conversation.list, answer)
+	conversationList[uuid] = conversation
+	a.messageDao.NewMessageBatch(conversation.id, uuid, conversation.list[len(conversation.list)-2:])
+	return "success"
 }
 
 func (a *App) OpenAiGetModelList() []string {

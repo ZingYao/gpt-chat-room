@@ -40,7 +40,7 @@ function App() {
         setTimeout(() => {
             scrollToBottom()
         }, 100)
-    }, [lastMsg])
+    }, [conversationMessageList,lastMsg])
 
     useEffect(() => {
         let lm = conversationMessageList[conversationMessageList.length - 1]
