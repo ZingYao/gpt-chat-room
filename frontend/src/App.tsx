@@ -103,6 +103,7 @@ function App() {
         setLastMsg("")
         //获取当前会话信息
         let conversation = conversationList[currentConversationId]
+        console.log("conversation",conversation)
         //添加会话信息
         conversationMessageList = conversationMessageList.concat([{role: "user", name: "fiona", content: question}])
         setConversationMessageList(conversationMessageList)

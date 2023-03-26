@@ -241,8 +241,10 @@ func (a *App) getConversation(uuid string) (conversation Conversation, err error
 		if errors.Is(err, gorm.ErrRecordNotFound) || total == 0 {
 			return conversation, fmt.Errorf("conversation:%s not exists(%v)", uuid, err)
 		}
-		if currentConversation.ID == 0 {
+		if currentConversation.ID != 0 {
 			currentConversation = cL[0]
+		} else {
+			fmt.Printf("uuid:%s can't find conversation", uuid)
 		}
 		msgList, err := a.messageDao.GetMessageListByUUID(uuid)
 		l := []openai.ChatCompletionMessage{{
@@ -300,8 +302,15 @@ func (a *App) ConversationCreate(uuid, title, characterSetting, model string) st
 		return err.Error()
 	}
 	conversationList[uuid] = Conversation{
-		id:   conversation.ID,
-		list: make([]openai.ChatCompletionMessage, 0),
+		id:    conversation.ID,
+		model: model,
+		list: []openai.ChatCompletionMessage{
+			{
+				Role:    openai.ChatMessageRoleSystem,
+				Content: characterSetting,
+				Name:    openai.ChatMessageRoleSystem,
+			},
+		},
 	}
 	return "会话创建成功"
 }
