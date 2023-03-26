@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 import {marked} from 'marked';
 import './App.css';
-import {Chat, UtilMessageDialog, MessageGetList} from "../wailsjs/go/main/App";
+import {OpenAiChat, UtilMessageDialog, MessageGetList} from "../wailsjs/go/main/App";
 import {Button, Col, Form, Input, Layout, MenuValue, MessagePlugin, Row} from 'tdesign-react'
 import {openai} from "../wailsjs/go/models";
 import {entities} from "./models";
@@ -46,8 +46,8 @@ function App() {
         if (conversation.UUID == "") {
             UtilMessageDialog("error", "错误", `对话选择错误(${currentConversationId})`)
         }
-        MessageGetList(conversation.UUID, conversation.Title).then(l => setConversationMessageList(l))
-    }, [currentConversationId])
+        MessageGetList(conversation.UUID).then(l => setConversationMessageList(l))
+    }, [currentConversationId,conversationList])
     //选择会话事件
     let onConversationChange = (e: MenuValue) => {
         setCurrentConversationId(e.valueOf() as number)
@@ -76,7 +76,7 @@ function App() {
             return;
         }
         //问题防止重复提问判定
-        if (conversationMessageList[conversationMessageList.length - 1].role == "user") {
+        if (conversationMessageList.length !=0 && conversationMessageList[conversationMessageList.length - 1].role == "user") {
             MessagePlugin.warning("上一个问题还没有解答完成，请稍后")
             return;
         }
@@ -86,7 +86,7 @@ function App() {
         conversationMessageList = conversationMessageList.concat([{role: "user", name: "fiona", content: question}])
         setConversationMessageList(conversationMessageList)
         //提交会话请求
-        Chat(conversation.UUID, conversation.Title, question).then((res: string) => {
+        OpenAiChat(conversation.UUID, question,2048).then((res: string) => {
             conversationMessageList = conversationMessageList.concat([{role: "assistant", name: "zing", content: res}])
             //会话结果添加
             setConversationMessageList(conversationMessageList)
@@ -95,6 +95,7 @@ function App() {
 
     return (
         <div style={{marginTop: "30px", marginBottom: "10px", overflow: "hidden", height: "calc(100vh - 40px)"}}
+             className="canDrag"
              id="App">
             <Layout style={{height: "100vh"}}>
                 <Aside style={{height: "100%", borderRight: "1px solid #fff"}}>
@@ -105,7 +106,7 @@ function App() {
                 <Layout style={{height: "100vh"}}>
                     <Header style={{height: "80px"}}>
                         <h1>{conversationList[currentConversationId]?.Title ?? "等待创建会话"}</h1></Header>
-                    <Content>
+                    <Content  className="cantDrag">
                         <div id="chatWindow" style={{
                             width: "100%",
                             height: "calc(100vh - 230px)",
@@ -131,7 +132,7 @@ function App() {
                             </div>
                         </div>
                     </Content>
-                    <Footer style={{height: "50px", marginBottom: "10px", backgroundColor: "rgba(250,250,250,1)"}}>
+                    <Footer style={{height: "50px", marginBottom: "10px", backgroundColor: "rgba(250,250,250,1)"}} className="cantDrag">
                         <Form layout="vertical" onSubmit={submitQuestion} form={form}>
                             <Row key="editor">
                                 <Col span={11} key="input">

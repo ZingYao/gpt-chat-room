@@ -14,7 +14,7 @@ func NewConversationDao() ConversationDao {
 
 type (
 	ConversationDao interface {
-		NewOne(uuid, title string) (record entities.Conversation, err error)
+		NewOne(uuid, title, characterSetting, model string) (record entities.Conversation, err error)
 		GetList(title, uuid string, id, page, limit int) (total int64, cList []entities.Conversation, err error)
 		DelOneByUUID(uuid string) error
 		UpdateConversation(uuid string, conversation entities.Conversation) error
@@ -29,9 +29,11 @@ func (c *conversationDao) UpdateConversation(uuid string, conversation entities.
 	return tx.Error
 }
 
-func (c *conversationDao) NewOne(uuid, title string) (record entities.Conversation, err error) {
+func (c *conversationDao) NewOne(uuid, title string, characterSetting, model string) (record entities.Conversation, err error) {
 	record.UUID = uuid
 	record.Title = title
+	record.CharacterSetting = characterSetting
+	record.ChatModel = model
 	rsp := c.db.Create(&record)
 	if rsp.Error != nil {
 		log.Infof("create conversationDao has an error(%v)", rsp.Error)
@@ -56,7 +58,7 @@ func (c *conversationDao) GetList(title, uuid string, id, page, limit int) (tota
 		err = rsp.Error
 		return
 	}
-	rsp = c.db.Offset((page - 1) * limit).Limit(limit).Find(&cList).Find(&cList)
+	rsp = c.db.Offset((page - 1) * limit).Limit(limit).Order("created_at desc").Find(&cList)
 	if rsp.Error != nil {
 		err = rsp.Error
 		return

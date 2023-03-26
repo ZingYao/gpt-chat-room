@@ -4,6 +4,8 @@ export namespace entities {
     export class Conversation {
         UUID: string;
         Title: string;
+        CharacterSetting:string;
+        ChatModel:string
 
         static createFrom(source: any = {}) {
             return new Conversation(source);
@@ -13,6 +15,8 @@ export namespace entities {
             if ('string' === typeof source) source = JSON.parse(source);
             this.Title = source["Title"];
             this.UUID = source["UUID"];
+            this.CharacterSetting = source["CharacterSetting"];
+            this.ChatModel = source["ChatModel"];
         }
     }
     export class Config {

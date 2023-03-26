@@ -4,8 +4,11 @@ import (
 	"os/user"
 )
 
-var workDir = ""
-var currentUser *user.User
+var (
+	workDir     = ""
+	currentUser *user.User
+	requestKey  = ""
+)
 
 func GetWorkDir() string {
 	var err error
@@ -30,4 +33,12 @@ func GetUserName() string {
 		}
 	}
 	return currentUser.Username
+}
+
+func SetRequestKey(key string) {
+	requestKey = key
+}
+
+func GetRequestKey() string {
+	return requestKey
 }

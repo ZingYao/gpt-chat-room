@@ -1,5 +1,4 @@
 
-
 .messages {
     display: flex;
     flex-direction: column;
@@ -24,4 +23,17 @@
     color: #fff;
     align-self: flex-end;
     margin-right: 20px;
+}
+
+.canDrag {
+    --wails-draggable: drag;
+}
+
+.cantDrag {
+    --wails-draggable: no-drag;
+}
+
+html {
+    height: 100%;
+    overflow: hidden;
 }

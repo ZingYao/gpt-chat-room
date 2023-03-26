@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"fiona_work_support/application/ai_connect"
 	"fiona_work_support/config"
 	"fiona_work_support/model/dao"
 	"fiona_work_support/model/entities"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/sashabaranov/go-openai"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -54,6 +56,7 @@ func (a *App) startup(ctx context.Context) {
 		panic(err)
 	}
 	a.reloadClient()
+	config.SetRequestKey(uuid.New().String())
 }
 
 func (a *App) reloadClient() {
@@ -64,13 +67,13 @@ func (a *App) reloadClient() {
 			Proxy: http.ProxyURL(proxy),
 		}
 	} else {
-
 		runtime.LogWarningf(a.ctx, "proxy %s parse failed %v", a.config.ProxyAddr, err)
 	}
 	a.client = openai.NewClientWithConfig(openaiConfig)
+	ai_connect.SetClient(a.client)
 }
 
-func (a *App) Chat(uuid, title, question string) (result string) {
+func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 	var conversation Conversation
 	if a.client == nil {
 		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
@@ -80,7 +83,7 @@ func (a *App) Chat(uuid, title, question string) (result string) {
 		})
 		return "请配置ApiKey后再试~"
 	}
-	conversation, err := a.getConversation(uuid, title)
+	conversation, err := a.getConversation(uuid)
 	if err != nil {
 		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
 			Type:    runtime.ErrorDialog,
@@ -92,7 +95,7 @@ func (a *App) Chat(uuid, title, question string) (result string) {
 	conversation.list = append(conversation.list, openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleUser,
 		Content: question,
-		Name:    "Fiona",
+		Name:    "user",
 	})
 	rsp, err := a.client.CreateChatCompletion(
 		a.ctx,
@@ -112,12 +115,26 @@ func (a *App) Chat(uuid, title, question string) (result string) {
 		return ""
 	}
 	answer := rsp.Choices[0].Message
-	answer.Name = "zing"
+	answer.Name = openai.ChatMessageRoleAssistant
 	conversation.list = append(conversation.list, answer)
 	conversationList[uuid] = conversation
 	a.messageDao.NewMessageBatch(conversation.id, uuid, conversation.list[len(conversation.list)-2:])
-	fmt.Printf("question:%s\nanswer:%s\n", question, answer.Content)
 	return answer.Content
+}
+
+func (a *App) OpenAiGetModelList() []string {
+	rsp, err := a.client.ListModels(a.ctx)
+	if err != nil {
+		return make([]string, 0)
+	}
+
+	modelList := make([]string, 0)
+	for _, item := range rsp.Models {
+		if item.Object == "model" && item.OwnedBy == "openai" {
+			modelList = append(modelList, item.Root)
+		}
+	}
+	return modelList
 }
 
 func (a *App) UtilMessageDialog(msgType, title, msg string) error {
@@ -162,7 +179,7 @@ func (a *App) UtilCheckProxy(proxyAddr string, webAddr string) string {
 	return fmt.Sprintf("[%d]%s", rsp.StatusCode, string(body))
 }
 
-func (a *App) getConversation(uuid, title string) (conversation Conversation, err error) {
+func (a *App) getConversation(uuid string) (conversation Conversation, err error) {
 	var exists bool
 	var currentConversation entities.Conversation
 	if conversation, exists = conversationList[uuid]; !exists {
@@ -176,45 +193,36 @@ func (a *App) getConversation(uuid, title string) (conversation Conversation, er
 			return conversation, err
 		}
 		if errors.Is(err, gorm.ErrRecordNotFound) || total == 0 {
-			currentConversation, _ = a.conversationDao.NewOne(uuid, title)
+			return conversation, fmt.Errorf("conversation:%s not exists(%v)", uuid, err)
 		}
 		if currentConversation.ID == 0 {
 			currentConversation = cL[0]
 		}
 		msgList, err := a.messageDao.GetMessageListByUUID(uuid)
-		if err != nil || len(msgList) == 0 {
-			conversation = Conversation{
-				id: currentConversation.ID,
-				list: []openai.ChatCompletionMessage{
-					{
-						Role:    openai.ChatMessageRoleSystem,
-						Content: "所有的答复都使用markdown格式，尽可能多的使用emoji，emoji请直接发表情不要发送简码",
-						Name:    "Administrator",
-					},
-				},
-			}
-			a.messageDao.NewMessageBatch(currentConversation.ID, uuid, conversation.list)
-		} else {
-			var l []openai.ChatCompletionMessage
-			for _, item := range msgList {
-				l = append(l, openai.ChatCompletionMessage{
-					Role:    item.Role,
-					Content: item.Content,
-					Name:    item.Name,
-				})
-			}
-			conversation = Conversation{
-				id:   currentConversation.ID,
-				list: l,
-			}
+		l := []openai.ChatCompletionMessage{{
+			Role:    openai.ChatMessageRoleSystem,
+			Content: currentConversation.CharacterSetting,
+			Name:    "system",
+		}}
+		for _, item := range msgList {
+			l = append(l, openai.ChatCompletionMessage{
+				Role:    item.Role,
+				Content: item.Content,
+				Name:    item.Name,
+			})
+		}
+		conversation = Conversation{
+			id:   currentConversation.ID,
+			list: l,
 		}
 	}
+
 	conversationList[uuid] = conversation
 	return conversation, nil
 }
 
-func (a *App) MessageGetList(uuid, title string) []openai.ChatCompletionMessage {
-	conversation, err := a.getConversation(uuid, title)
+func (a *App) MessageGetList(uuid string) []openai.ChatCompletionMessage {
+	conversation, err := a.getConversation(uuid)
 	if err != nil {
 		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
 			Type:    runtime.ErrorDialog,
@@ -239,6 +247,18 @@ func (a *App) ConversationGetList() []entities.Conversation {
 	return conversationList
 }
 
+func (a *App) ConversationCreate(uuid, title, characterSetting, model string) string {
+	conversation, err := a.conversationDao.NewOne(uuid, title, characterSetting, model)
+	if err != nil {
+		return err.Error()
+	}
+	conversationList[uuid] = Conversation{
+		id:   conversation.ID,
+		list: make([]openai.ChatCompletionMessage, 0),
+	}
+	return "会话创建成功"
+}
+
 func (a *App) ConfigGet() entities.Config {
 	return a.config
 }
@@ -261,6 +281,10 @@ func (a *App) ConfigSetProxy(proxyAddr string) bool {
 	a.config.ProxyAddr = proxyAddr
 	a.reloadClient()
 	return true
+}
+
+func (a *App) ConfigGetRequestKey() string {
+	return config.GetRequestKey()
 }
 
 func (a *App) ConversationDelete(uuid string) string {
