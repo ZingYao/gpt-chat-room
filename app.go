@@ -12,10 +12,12 @@ import (
 	"github.com/sashabaranov/go-openai"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"gorm.io/gorm"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 // App struct
@@ -97,7 +99,7 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 		Content: question,
 		Name:    "user",
 	})
-	rsp, err := a.client.CreateChatCompletion(
+	stream, err := a.client.CreateChatCompletionStream(
 		a.ctx,
 		openai.ChatCompletionRequest{
 			Model:     openai.GPT3Dot5Turbo,
@@ -114,12 +116,37 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 		log.Printf("[error] request to gpt-3 has an error(%v)", err)
 		return ""
 	}
-	answer := rsp.Choices[0].Message
-	answer.Name = openai.ChatMessageRoleAssistant
-	conversation.list = append(conversation.list, answer)
-	conversationList[uuid] = conversation
-	a.messageDao.NewMessageBatch(conversation.id, uuid, conversation.list[len(conversation.list)-2:])
-	return answer.Content
+	defer stream.Close()
+	var msg string
+	go func() {
+		for {
+			if errors.Is(err, io.EOF) {
+				return
+			}
+			m := msg
+			msg = ""
+			runtime.EventsEmit(a.ctx, "stream-msg", m)
+			fmt.Printf(m)
+			time.Sleep(500 * time.Millisecond)
+		}
+	}()
+	for {
+		var response openai.ChatCompletionStreamResponse
+		response, err = stream.Recv()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return "success"
+			}
+			return fmt.Sprintf("openai返回了一个错误(%v)", err)
+		}
+		msg = msg + response.Choices[0].Delta.Content
+	}
+	// answer := rsp.Choices[0].Message
+	// answer.Name = openai.ChatMessageRoleAssistant
+	// conversation.list = append(conversation.list, answer)
+	// conversationList[uuid] = conversation
+	// a.messageDao.NewMessageBatch(conversation.id, uuid, conversation.list[len(conversation.list)-2:])
+	// return answer.Content
 }
 
 func (a *App) OpenAiGetModelList() []string {

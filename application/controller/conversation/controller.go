@@ -3,6 +3,7 @@ package conversation
 import (
 	"fiona_work_support/application"
 	"fiona_work_support/application/service"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -31,7 +32,7 @@ func (l controller) ChatConversationStream(ctx *gin.Context) {
 	ctx.Header("Content-Type", "text/event-stream")
 	ctx.Header("Cache-Control", "no-cache")
 	ctx.Header("Connection", "keep-alive")
-	err = l.conversationService.ChatConversationStream(ctx, param.CharacterSetting, param.Model, param.Token, param.ConversationList)
+	err = l.conversationService.ChatConversationStream(ctx, param.UUID, param.Question, param.Token)
 	if err != nil {
 		ctx.String(200, err.Error())
 		return
