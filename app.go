@@ -2,7 +2,8 @@ package main
 
 import (
 	"context"
-	"fiona_work_support/application/ai_connect"
+	"encoding/json"
+	"fiona_work_support/common"
 	"fiona_work_support/config"
 	"fiona_work_support/model/dao"
 	"fiona_work_support/model/entities"
@@ -34,8 +35,9 @@ type App struct {
 var conversationList map[string]Conversation
 
 type Conversation struct {
-	id   uint
-	list []openai.ChatCompletionMessage
+	id    uint
+	model string
+	list  []openai.ChatCompletionMessage
 }
 
 // NewApp creates a new App application struct
@@ -72,7 +74,6 @@ func (a *App) reloadClient() {
 		runtime.LogWarningf(a.ctx, "proxy %s parse failed %v", a.config.ProxyAddr, err)
 	}
 	a.client = openai.NewClientWithConfig(openaiConfig)
-	ai_connect.SetClient(a.client)
 }
 
 func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
@@ -99,6 +100,18 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 		Content: question,
 		Name:    "user",
 	})
+	var length int
+	maxToken := common.GetMaxToken(conversation.model)
+	conversation.list, length = common.GetConversationListByToken(conversation.list, maxToken-token)
+	fmt.Println(conversation.model, maxToken, token, length)
+	if maxToken-token-length <= 0 {
+		return "会话响应长度过短"
+	}
+	if len(conversation.list) == 1 {
+		return "会话过长，请新建会话后重试"
+	}
+	c, _ := json.Marshal(conversation.list)
+	fmt.Printf("list:%s", string(c))
 	stream, err := a.client.CreateChatCompletionStream(
 		a.ctx,
 		openai.ChatCompletionRequest{
@@ -245,8 +258,9 @@ func (a *App) getConversation(uuid string) (conversation Conversation, err error
 			})
 		}
 		conversation = Conversation{
-			id:   currentConversation.ID,
-			list: l,
+			id:    currentConversation.ID,
+			model: currentConversation.ChatModel,
+			list:  l,
 		}
 	}
 

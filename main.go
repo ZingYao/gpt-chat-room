@@ -2,20 +2,15 @@ package main
 
 import (
 	"embed"
-	"fiona_work_support/application/router"
 	"fiona_work_support/config"
-	"fiona_work_support/middleware"
 	_ "fiona_work_support/model/sqlite"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/labstack/gommon/log"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/logger"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	"github.com/wailsapp/wails/v2/pkg/options/mac"
 	"github.com/wailsapp/wails/v2/pkg/options/windows"
-	"net/http"
 	"time"
 )
 
@@ -52,7 +47,7 @@ func main() {
 			WindowIsTranslucent:  true,
 			About: &mac.AboutInfo{
 				Title:   "关于",
-				Message: "本工具用于支持电商运营相关工作\n© 2023 by zing",
+				Message: "GPT聊天工具\n© 2023 by zing",
 				Icon:    nil,
 			},
 		},
@@ -64,38 +59,8 @@ func main() {
 			OpenInspectorOnStartup: true,
 		},
 	})
-	go startCgiService()
 
 	if err != nil {
 		println("Error:", err.Error())
 	}
-}
-
-func startCgiService() {
-	// 日志不打印色彩
-	gin.DisableConsoleColor()
-
-	gin.SetMode("release")
-
-	r := gin.New()
-
-	r.Use(middleware.RequestFilter)
-
-	apiGroup := r.Group("/api")
-	{
-		v1Group := apiGroup.Group("/v1")
-		router.RegisterConversationRouter(v1Group)
-	}
-
-	srv := &http.Server{
-		Addr:    ":11380",
-		Handler: r,
-	}
-
-	go func() {
-		// 服务连接
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen: %s\n", err)
-		}
-	}()
 }

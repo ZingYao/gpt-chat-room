@@ -110,6 +110,7 @@ function App() {
         OpenAiChat(conversation.UUID, question, 2048).then((res: string) => {
             setOverResponse(true)
             setConversationMessageList(conversationMessageList)
+            MessagePlugin.info(res)
         })
         conversationMessageList = conversationMessageList.concat([{role: "assistant", name: "zing", content: ""}])
         //会话结果添加
