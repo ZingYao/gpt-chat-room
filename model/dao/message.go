@@ -7,8 +7,13 @@ import (
 	"gorm.io/gorm"
 )
 
+func NewMessageDao() MessageDao {
+	return &messageDao{db: sqlite.GetConn()}
+}
+
 type (
 	MessageDao interface {
+		DeleteByUUID(uuid string) error
 		NewMessageBatch(cid uint, uuid string, data []openai.ChatCompletionMessage) error
 		GetMessageListByUUID(uuid string) (list []entities.Message, err error)
 	}
@@ -17,8 +22,9 @@ type (
 	}
 )
 
-func NewMessageDao() MessageDao {
-	return &messageDao{db: sqlite.GetConn()}
+func (m *messageDao) DeleteByUUID(uuid string) error {
+	tx := m.db.Where("uuid = ?", uuid).Delete(&entities.Message{})
+	return tx.Error
 }
 
 func (m *messageDao) NewMessageBatch(cid uint, uuid string, data []openai.ChatCompletionMessage) error {

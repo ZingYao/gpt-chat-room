@@ -356,7 +356,11 @@ func (a *App) ConfigGetRequestKey() string {
 }
 
 func (a *App) ConversationDelete(uuid string) string {
-	err := a.conversationDao.DelOneByUUID(uuid)
+	err := a.messageDao.DeleteByUUID(uuid)
+	if err != nil {
+		return err.Error()
+	}
+	err = a.conversationDao.DelOneByUUID(uuid)
 	if err != nil {
 		return err.Error()
 	}
