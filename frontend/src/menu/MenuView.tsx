@@ -18,6 +18,7 @@ import {
     ConfigSetApiKey,
     ConfigSetProxy,
     ConversationCreate,
+    ConversationDelete,
     ConversationGetList,
     OpenAiGetModelList,
     UtilCheckProxy,
@@ -101,8 +102,20 @@ const MenuView = (props: MenuViewPropsType) => {
                                       icon={currentConversationId == index ? <PinFilledIcon/> : <PinIcon/>}>
                                 <div>
                                     <span>{c.Title}</span>
-                                    {/*<Button shape="circle" theme="default" icon={<Edit1Icon size={"3px"}/>}/>*/}
-                                    {/*<Button shape="circle" theme="default" icon={<DeleteIcon size={"3px"}/>}/>*/}
+                                    <Button shape="circle" theme="default" icon={<Edit1Icon size={"3px"}/>}/>
+                                    <Button shape="circle" theme="default" icon={<DeleteIcon size={"3px"}/>}
+                                            onClick={() => {
+                                                ConversationDelete(c.UUID).then((res: string) => {
+                                                    if (res == "") {
+                                                        ConversationGetList().then((list) => {
+                                                            setConversationList(list)
+                                                        })
+                                                    } else {
+                                                        MessagePlugin.error(`删除会话失败:${res}`)
+                                                    }
+                                                })
+                                            }
+                                            }/>
                                 </div>
                             </MenuItem>
                         )

@@ -64,6 +64,9 @@ function App() {
 
     //变更会话
     useEffect(function () {
+        if (currentConversationId >= conversationList.length) {
+            setCurrentConversationId(0)
+        }
         if (currentConversationId == -1) {
             return
         }
