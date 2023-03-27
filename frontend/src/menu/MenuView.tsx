@@ -62,7 +62,7 @@ const MenuView = (props: MenuViewPropsType) => {
     //模型列表
     let [modelList, setModelList] = useState<string[]>([])
     //新建会话模型
-    let [conversationModel, setConversationModel] = useState(modelList[0])
+    let [conversationModel, setConversationModel] = useState<string>(modelList[0])
 
     // 获取会话列表
     useEffect(function () {
@@ -148,16 +148,18 @@ const MenuView = (props: MenuViewPropsType) => {
                         document.getElementById("conversationResetBtn")?.click()
                     }}
                     onConfirm={() => {
-                        if (conversationTitle == "") {
+                        if (!conversationTitle || conversationTitle == "") {
                             UtilMessageDialog("error", "错误", "会话标题不能为空").then(r => {
                             })
                             return
                         }
-                        if (conversationModel == "") {
+                        console.log("model",conversationModel)
+                        if (!conversationModel || conversationModel == "") {
                             UtilMessageDialog("error", "错误", "会话模型不能为空").then(r => {
                             })
                             return;
                         }
+                        setConversationModel('')
                         let id = uuid()
                         ConversationCreate(id, conversationTitle, conversationCharacterSetting, conversationModel).then((s) => {
                             if (s != "会话创建成功") {
@@ -174,7 +176,6 @@ const MenuView = (props: MenuViewPropsType) => {
                             setConversationList(conversationList)
                             setNewConversationVisible(false)
                             document.getElementById("conversationResetBtn")?.click()
-                            setConversationModel(modelList[0])
 
                             ConversationGetList().then((list) => {
                                 setConversationList(list)
