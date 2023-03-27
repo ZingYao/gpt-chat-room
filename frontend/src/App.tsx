@@ -59,7 +59,7 @@ function App() {
 
 
     EventsOn("stream-msg", (data: string) => {
-        setLastMsg(`${lastMsg}${data}`)
+        setLastMsg(data)
     })
 
     //变更会话
