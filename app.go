@@ -129,13 +129,10 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 		return ""
 	}
 	defer stream.Close()
-	var responseMsg string
 	var msg string
 	go func() {
 		for {
-			m := msg
-			msg = ""
-			runtime.EventsEmit(a.ctx, "stream-msg", m)
+			runtime.EventsEmit(a.ctx, "stream-msg", msg)
 			if err != nil {
 				return
 			}
@@ -152,11 +149,10 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 			return fmt.Sprintf("openai返回了一个错误(%v)", err)
 		}
 		msg = msg + response.Choices[0].Delta.Content
-		responseMsg = responseMsg + response.Choices[0].Delta.Content
 	}
 	answer := openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleAssistant,
-		Content: responseMsg,
+		Content: msg,
 		Name:    openai.ChatMessageRoleAssistant,
 	}
 	answer.Name = openai.ChatMessageRoleAssistant

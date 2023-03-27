@@ -158,7 +158,7 @@ function App() {
                             overflowY: "scroll",
                             padding: "10px"
                         }}>
-                            <div className="messages">
+                            <div className="messages" key="message">
                                 {conversationMessageList.map((item, index) => {
                                     if (item.content.trim().length == 0) {
                                         return
