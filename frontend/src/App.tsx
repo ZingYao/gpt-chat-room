@@ -149,16 +149,16 @@ function App() {
                               currentConversationId={currentConversationId}/>
                 </Aside>
                 <Layout style={{height: "100vh",overflow:"hidden"}}>
-                    <Header style={{height: "120px"}}>
+                    <Header style={{height: "120px",marginTop:"-20px"}}>
                         <h1>{conversationList[currentConversationId]?.Title ?? "等待创建会话"}</h1>
                         <h5 style={{marginTop:"-15px"}}>会话模型:{conversationList[currentConversationId]?.ChatModel}</h5>
-                        <h6 style={{marginTop:"-15px"}}>会话人设:{conversationList[currentConversationId]?.CharacterSetting}</h6>
+                        <h6 style={{marginTop:"-25px"}}>会话人设:{conversationList[currentConversationId]?.CharacterSetting}</h6>
                     </Header>
 
                     <Content className="cantDrag">
                         <div id="chatWindow" style={{
                             width: "100%",
-                            height: "calc(100vh - 270px)",
+                            height: "calc(100vh - 230px)",
                             overflowY: "scroll",
                             padding: "10px"
                         }}>
