@@ -12,6 +12,7 @@ func NewConfigDao() ConfigDao {
 
 type (
 	ConfigDao interface {
+		SetProxy(userName string, proxy string) error
 		GetConfig(userName string) (entities.Config, error)
 		SetConfig(userName string, config entities.Config) error
 	}
@@ -19,6 +20,11 @@ type (
 		db *gorm.DB
 	}
 )
+
+func (c configDao) SetProxy(userName string, proxy string) error {
+	tx := c.db.Model(&entities.Config{}).Select("proxy_addr").Where("user_name = ?", userName).Updates(&entities.Config{ProxyAddr: proxy})
+	return tx.Error
+}
 
 func (c configDao) GetConfig(userName string) (entities.Config, error) {
 	var config entities.Config

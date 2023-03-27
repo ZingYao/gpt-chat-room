@@ -65,13 +65,15 @@ func (a *App) startup(ctx context.Context) {
 
 func (a *App) reloadClient() {
 	openaiConfig := openai.DefaultConfig(a.config.ApiKey)
-	proxy, err := url.Parse(a.config.ProxyAddr)
-	if err == nil {
-		openaiConfig.HTTPClient.Transport = &http.Transport{
-			Proxy: http.ProxyURL(proxy),
+	if a.config.ProxyAddr != "" {
+		proxy, err := url.Parse(a.config.ProxyAddr)
+		if err == nil {
+			openaiConfig.HTTPClient.Transport = &http.Transport{
+				Proxy: http.ProxyURL(proxy),
+			}
+		} else {
+			runtime.LogWarningf(a.ctx, "proxy %s parse failed %v", a.config.ProxyAddr, err)
 		}
-	} else {
-		runtime.LogWarningf(a.ctx, "proxy %s parse failed %v", a.config.ProxyAddr, err)
 	}
 	a.client = openai.NewClientWithConfig(openaiConfig)
 }
@@ -330,7 +332,7 @@ func (a *App) ConfigSetApiKey(apiKey string) bool {
 }
 
 func (a *App) ConfigSetProxy(proxyAddr string) bool {
-	err := a.configDao.SetConfig(a.userName, entities.Config{ProxyAddr: proxyAddr})
+	err := a.configDao.SetProxy(a.userName, proxyAddr)
 	if err != nil {
 		return false
 	}

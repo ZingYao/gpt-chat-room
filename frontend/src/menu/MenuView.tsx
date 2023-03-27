@@ -12,7 +12,7 @@ import {
     SelectValue,
     Textarea
 } from "tdesign-react";
-import {PinFilledIcon, PinIcon} from 'tdesign-icons-react';
+import {DeleteIcon, Edit1Icon, PinFilledIcon, PinIcon} from 'tdesign-icons-react';
 import {
     ConfigGet,
     ConfigSetApiKey,
@@ -99,7 +99,11 @@ const MenuView = (props: MenuViewPropsType) => {
                         return (
                             <MenuItem value={index} key={c.UUID}
                                       icon={currentConversationId == index ? <PinFilledIcon/> : <PinIcon/>}>
-                                <div><span>{c.Title}</span></div>
+                                <div>
+                                    <span>{c.Title}</span>
+                                    {/*<Button shape="circle" theme="default" icon={<Edit1Icon size={"3px"}/>}/>*/}
+                                    {/*<Button shape="circle" theme="default" icon={<DeleteIcon size={"3px"}/>}/>*/}
+                                </div>
                             </MenuItem>
                         )
                     })}
@@ -176,7 +180,8 @@ const MenuView = (props: MenuViewPropsType) => {
                                       }}></Textarea>
                         </FormItem>
                         <FormItem label="会话模型" name="conversationModel">
-                            <Select placeholder="会话模型" value={conversationModel} filterable defaultValue={modelList[0]}
+                            <Select placeholder="会话模型" value={conversationModel} filterable
+                                    defaultValue={modelList[0]}
                                     onChange={(m: SelectValue) => setConversationModel(m.toString())}>
                                 {modelList.sort().map((model: string, index: number) => (
                                     <Option key={index} value={model} label={model}></Option>
