@@ -26,6 +26,7 @@ type (
 
 func (c *conversationDao) UpdateConversation(uuid string, conversation entities.Conversation) error {
 	tx := c.db.Model(&entities.Conversation{}).Where("uuid = ?", uuid).Updates(conversation)
+	fmt.Printf("%v", tx)
 	return tx.Error
 }
 

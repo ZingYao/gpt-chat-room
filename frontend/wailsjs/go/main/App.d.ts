@@ -5,8 +5,6 @@ import {openai} from '../models';
 
 export function ConfigGet():Promise<entities.Config>;
 
-export function ConfigGetRequestKey():Promise<string>;
-
 export function ConfigSetApiKey(arg1:string):Promise<boolean>;
 
 export function ConfigSetProxy(arg1:string):Promise<boolean>;
@@ -15,9 +13,9 @@ export function ConversationCreate(arg1:string,arg2:string,arg3:string,arg4:stri
 
 export function ConversationDelete(arg1:string):Promise<string>;
 
-export function ConversationGetList():Promise<Array<entities.Conversation>>;
+export function ConversationEdit(arg1:string,arg2:string,arg3:string,arg4:string):Promise<string>;
 
-export function ConversationRename(arg1:string,arg2:string):Promise<string>;
+export function ConversationGetList():Promise<Array<entities.Conversation>>;
 
 export function MessageGetList(arg1:string):Promise<Array<openai.ChatCompletionMessage>>;
 

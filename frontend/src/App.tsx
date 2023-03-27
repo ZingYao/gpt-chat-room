@@ -2,7 +2,7 @@ import {useEffect, useState} from 'react';
 import {marked} from 'marked';
 import './App.css';
 import {MessageGetList, OpenAiChat, OpenAiGetMaxToken, UtilMessageDialog} from "../wailsjs/go/main/App";
-import {EventsOn} from '../wailsjs/runtime/runtime'
+import {BrowserOpenURL, EventsOn} from '../wailsjs/runtime/runtime'
 import {Button, Col, Form, Input, Layout, MenuValue, MessagePlugin, Row, Select} from 'tdesign-react'
 import {openai} from "../wailsjs/go/models";
 import {entities} from "./models";
@@ -13,7 +13,8 @@ import Option from "tdesign-react/es/select/base/Option";
 
 const {FormItem} = Form
 const {Header, Aside, Footer, Content} = Layout
-
+// @ts-ignore
+window.BrowserOpenURL = BrowserOpenURL
 function App() {
     //会话列表
     let [conversationList, setConversationList] = useState<entities.Conversation[]>([])
@@ -167,13 +168,17 @@ function App() {
                         }}>
                             <div className="messages" key="message">
                                 {conversationMessageList.map((item, index) => {
+
                                     if (item.content.trim().length == 0) {
                                         return
                                     }
                                     switch (item.role) {
                                         case "assistant":
+                                            // dangerouslySetInnerHTML={{__html: marked(item.content).replace('<a ','<a onclick="console.log("atag",this);return false;" ')}}
                                             return (<div key={index} className="message received"
-                                                         dangerouslySetInnerHTML={{__html: marked(item.content)}}>
+                                                         dangerouslySetInnerHTML={{__html: marked(item.content).replace('<a ','<a onclick=\'BrowserOpenURL(this.href);return false;\' ')}}
+                                            >
+                                                {/*{marked(item.content).replace('<a ','<a onClick="console.log("atag",this);return false;" ')}*/}
                                             </div>)
                                         case "user":
                                             return (

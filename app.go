@@ -7,7 +7,6 @@ import (
 	"fiona_work_support/model/dao"
 	"fiona_work_support/model/entities"
 	"fmt"
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/sashabaranov/go-openai"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -60,7 +59,6 @@ func (a *App) startup(ctx context.Context) {
 		panic(err)
 	}
 	a.reloadClient()
-	config.SetRequestKey(uuid.New().String())
 }
 
 func (a *App) reloadClient() {
@@ -308,25 +306,6 @@ func (a *App) ConversationGetList() []entities.Conversation {
 	return conversationList
 }
 
-func (a *App) ConversationCreate(uuid, title, characterSetting, model string) string {
-	conversation, err := a.conversationDao.NewOne(uuid, title, characterSetting, model)
-	if err != nil {
-		return err.Error()
-	}
-	conversationList[uuid] = Conversation{
-		id:    conversation.ID,
-		model: model,
-		list: []openai.ChatCompletionMessage{
-			{
-				Role:    openai.ChatMessageRoleSystem,
-				Content: characterSetting,
-				Name:    openai.ChatMessageRoleSystem,
-			},
-		},
-	}
-	return "会话创建成功"
-}
-
 func (a *App) ConfigGet() entities.Config {
 	return a.config
 }
@@ -351,10 +330,24 @@ func (a *App) ConfigSetProxy(proxyAddr string) bool {
 	return true
 }
 
-func (a *App) ConfigGetRequestKey() string {
-	return config.GetRequestKey()
+func (a *App) ConversationCreate(uuid, title, characterSetting, model string) string {
+	conversation, err := a.conversationDao.NewOne(uuid, title, characterSetting, model)
+	if err != nil {
+		return err.Error()
+	}
+	conversationList[uuid] = Conversation{
+		id:    conversation.ID,
+		model: model,
+		list: []openai.ChatCompletionMessage{
+			{
+				Role:    openai.ChatMessageRoleSystem,
+				Content: characterSetting,
+				Name:    openai.ChatMessageRoleSystem,
+			},
+		},
+	}
+	return "会话创建成功"
 }
-
 func (a *App) ConversationDelete(uuid string) string {
 	err := a.messageDao.DeleteByUUID(uuid)
 	if err != nil {
@@ -367,8 +360,8 @@ func (a *App) ConversationDelete(uuid string) string {
 	return ""
 }
 
-func (a *App) ConversationRename(uuid string, title string) string {
-	err := a.conversationDao.UpdateConversation(uuid, entities.Conversation{Title: title})
+func (a *App) ConversationEdit(uuid, title, characterSetting, model string) string {
+	err := a.conversationDao.UpdateConversation(uuid, entities.Conversation{Title: title, CharacterSetting: characterSetting, ChatModel: model})
 	if err != nil {
 		return err.Error()
 	}
