@@ -198,12 +198,14 @@ func (a *App) UtilMessageDialog(msgType, title, msg string) error {
 }
 
 func (a *App) UtilCheckProxy(proxyAddr string, webAddr string) string {
-	proxyUrl, err := url.Parse(proxyAddr)
-	if err != nil {
-		return fmt.Sprintf("代理地址解析出错(%v)", err)
-	}
 	client := http.DefaultClient
-	client.Transport = &http.Transport{Proxy: http.ProxyURL(proxyUrl)}
+	if proxyAddr != "" {
+		proxyUrl, err := url.Parse(proxyAddr)
+		if err != nil {
+			return fmt.Sprintf("代理地址解析出错(%v)", err)
+		}
+		client.Transport = &http.Transport{Proxy: http.ProxyURL(proxyUrl)}
+	}
 	req, err := http.NewRequestWithContext(a.ctx, http.MethodGet, webAddr, nil)
 	if err != nil {
 		return fmt.Sprintf("新建请求出错(%v)", err)

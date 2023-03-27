@@ -43,7 +43,7 @@ const MenuView = (props: MenuViewPropsType) => {
     let {conversationList} = props
 
     // 代理测试地址
-    let [proxyTestAddr, setProxyTestAddr] = useState("https://api.openai.com/v1")
+    let [proxyTestAddr, setProxyTestAddr] = useState("https://api.openai.com/")
     //新建会话窗口显示控制
     let [newConversationVisible, setNewConversationVisible] = useState(false)
     //新建会话标题
@@ -242,15 +242,11 @@ const MenuView = (props: MenuViewPropsType) => {
                     <Input value={proxyTestAddr} style={{width: "70%", float: "left"}}
                            onChange={setProxyTestAddr}></Input>
                     <Button style={{float: "right", width: "30%"}} onClick={() => {
-                        if (proxyAddr.length == 0) {
-                            UtilMessageDialog("error", "错误", "代理地址不能为空")
-                            return
-                        }
                         UtilCheckProxy(proxyAddr, proxyTestAddr).then((rsp: string) => {
                             MessagePlugin.info(rsp)
                         })
                     }
-                    }>测试代理</Button>
+                    }>检查连通性</Button>
                 </Dialog>
             </div>
         </>);
