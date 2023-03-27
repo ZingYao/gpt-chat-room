@@ -111,7 +111,10 @@ const MenuView = (props: MenuViewPropsType) => {
 
                 <div>
                     <Button style={{width: "100%", height: "40px"}} onClick={() => {
-                        setNewConversationVisible(true)
+                        OpenAiGetModelList().then((list: string[]) => {
+                            setModelList(list)
+                            setNewConversationVisible(true)
+                        })
                     }}>新建会话</Button>
                 </div>
                 <div style={{marginTop: "1px"}}>
@@ -233,7 +236,7 @@ const MenuView = (props: MenuViewPropsType) => {
                         setProxyConfigVisible(false)
                     }}
                 >
-                    <Input value={proxyAddr} placeholder="代理地址" onChange={(v: string) => {
+                    <Input placeholder="代理地址" onChange={(v: string) => {
                         setProxyAddr(v.trim())
                     }}></Input>
                     <Input value={proxyTestAddr} style={{width: "70%", float: "left"}}
