@@ -190,7 +190,6 @@ function App() {
                         }}>
                             <div className="messages" key="message">
                                 {conversationMessageList.map((item, index) => {
-
                                     if (item.content.trim().length == 0) {
                                         return
                                     }

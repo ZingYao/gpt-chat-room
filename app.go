@@ -122,7 +122,7 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 		openai.ChatCompletionRequest{
 			Model:     openai.GPT3Dot5Turbo, // 模型选择
 			Messages:  conversation.list,    // 历史记录列表
-			MaxTokens: 1024,                 // 最大token数量
+			MaxTokens: token,                // 最大token数量
 		},
 	)
 	if err != nil {
