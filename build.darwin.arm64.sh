@@ -4,7 +4,7 @@ if [[ "$(uname -s)" != "Darwin" ]]; then
   exit 1
 fi
 rm -rf ./build/bin
-if ! wails build; then
+if ! wails build -platform=darwin/arm64; then
   echo "构建失败"
   exit 1
 fi
