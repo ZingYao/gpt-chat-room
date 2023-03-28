@@ -67,9 +67,9 @@ export default function NewConversation(props: NewConversationPropsType) {
 
   const _onConfirm = async () => {
     try {
-      const formValidata = await form.validate();
-
-      if (formValidata.valueOf()) {
+      const formValidata = await form.validateOnly();
+      // console.log("form.validate", formValidata, formValidata.valueOf());
+      if ( formValidata.valueOf() === true) {
         var newConversation: ConversationInfoType = {
           ...info,
           title: form.getFieldValue('title') as string,
@@ -126,6 +126,9 @@ export default function NewConversation(props: NewConversationPropsType) {
       }}
       onConfirm={() => {
         _onConfirm();
+      }}
+      style={{
+        textAlign: 'left',
       }}
     >
       <Form

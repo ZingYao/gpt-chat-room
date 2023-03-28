@@ -16,6 +16,8 @@ import {
 import {v4 as uuid} from "uuid";
 import Option from "tdesign-react/es/select/base/Option";
 import NewConversation, { ConversationInfoType } from "./Dialog/NewConversation";
+import EditApiKey from "./Dialog/EditApiKey";
+import EditProxy from "./Dialog/EditProxy";
 
 const {MenuItem} = Menu
 
@@ -244,73 +246,38 @@ const MenuView = (props: MenuViewPropsType) => {
                     info={conversationInfo}
                     modelList={modelList}
                 />
-
-                {/* <Dialog
-                    header={isEdit ? '编辑会话' : '新建会话'}
-                    visible={editConversationVisible}
-                    onClose={() => {
-                        setEditConversationVisible(false)
-                        resetEditConversationWindowData()
-                    }}
-                    onConfirm={() => submitConversation()}
-                >
-                    <div>
-                        <label>会话标题</label>
-                        <Input placeholder="会话标题" value={conversationInfo.title} onChange={(v: string) => {
-                            conversationInfo.title = v.trim()
-                            setConversationInfo(conversationInfo)
-                        }}></Input>
-                    </div>
-                    <div>
-                        <label>会话人设</label>
-                        <Textarea autosize={{minRows: 2, maxRows: 5}} placeholder="会话人设"
-                                  value={conversationInfo.characterSetting}
-                                  onChange={(v: string) => {
-                                      conversationInfo.characterSetting = v
-                                      setConversationInfo(conversationInfo)
-                                  }}></Textarea>
-                    </div>
-                    <div>
-                        <label>会话模型</label>
-                        <Select placeholder="会话模型" value={conversationInfo.model} filterable
-                                onChange={(m: SelectValue) => {
-                                    conversationInfo.model = m.toString()
-                                    setConversationInfo(conversationInfo)
-                                }}>
-                            {modelList.sort().map((model: string, index: number) => (
-                                <Option key={index} value={model} label={model}></Option>
-                            ))}
-                        </Select>
-                    </div>
-                </Dialog> */}
-                <Dialog
-                    header="请输入apikey"
+                <EditApiKey
                     visible={apiKeyConfigVisible}
+                    initKey={apiKey}
                     onClose={() => {
                         ConfigGet().then(config => {
                             setApiKey(config.ApiKey)
                         })
                         setApiKeyVisible(false)
                     }}
-                    confirmOnEnter={true}
-                    onConfirm={() => {
-                        if (apiKey == "") {
-                            UtilMessageDialog("error", "错误", "apiKey不能为空").catch((e) => {
-                                console.log("error", e)
-                            })
-                            return
-                        }
-                        setApiKeyVisible(false)
-                        ConfigSetApiKey(apiKey)
+                    onConfirm={(newKey) => {
+                        ConfigSetApiKey(newKey)
+                        ConfigGet().then(config => {
+                            setApiKey(config.ApiKey)
+                            setApiKeyVisible(false)
+                        })
                     }}
-                >
-                    <Input
-                        value={apiKey.length <= 11 ? apiKey : apiKey.slice(1, 5) + "******" + apiKey.slice(apiKey.length - 5, apiKey.length)}
-                        placeholder="OpenAI Api Key" onChange={(v: string) => {
-                        setApiKey(v.trim())
-                    }}></Input>
-                </Dialog>
-                <Dialog
+                />
+                <EditProxy 
+                    visible={proxyConfigVisible}
+                    initProxyTestAddr={proxyTestAddr}
+                    onClose={() => {
+                        ConfigGet().then(config => {
+                            setProxyAddr(config.ProxyAddr)
+                        })
+                        setProxyConfigVisible(false)
+                    }}
+                    onConfirm={(proxy) => {
+                        ConfigSetProxy(proxy)
+                        setProxyConfigVisible(false)
+                    }}
+                />
+                {/* <Dialog
                     header="请输入代理地址"
                     visible={proxyConfigVisible}
                     onClose={() => {
@@ -336,7 +303,7 @@ const MenuView = (props: MenuViewPropsType) => {
                         })
                     }
                     }>检查连通性</Button>
-                </Dialog>
+                </Dialog> */}
             </div>
         </>);
 }
