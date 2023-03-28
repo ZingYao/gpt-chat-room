@@ -333,6 +333,30 @@ func (a *App) ConfigSetProxy(proxyAddr string) bool {
 }
 
 func (a *App) ConversationCreate(uuid, title, characterSetting, model string) string {
+	if uuid == "" {
+		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+			Type:    "error",
+			Title:   "错误",
+			Message: "uuid 不能为空",
+		})
+		return "uuid 不能为空"
+	}
+	if title == "" {
+		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+			Type:    "error",
+			Title:   "错误",
+			Message: "标题 不能为空",
+		})
+		return "标题 不能为空"
+	}
+	if model == "" {
+		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+			Type:    "error",
+			Title:   "错误",
+			Message: "模型 不能为空",
+		})
+		return "模型 不能为空"
+	}
 	conversation, err := a.conversationDao.NewOne(uuid, title, characterSetting, model)
 	if err != nil {
 		return err.Error()
