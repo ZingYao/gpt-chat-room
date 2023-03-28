@@ -13,6 +13,10 @@
     word-wrap: break-word;
 }
 
+.message pre {
+    white-space: pre-line;
+}
+
 .received {
     background-color: #e5e5ea;
     align-self: flex-start;
@@ -38,12 +42,13 @@ html {
     overflow: hidden;
 }
 
-.cursor::before {
-    content: "";
+.cursor::after {
+    content: "|";
     width: 2px;
     height: 20px;
     background-color: #000;
-    position: absolute;
+    /* position: absolute; */
+    opacity: 1;
     animation: cursor-blink 1s infinite;
 }
 
