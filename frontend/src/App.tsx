@@ -201,7 +201,7 @@ function App() {
                             className="cantDrag">
                         <Form layout="vertical" onFinish={submitQuestion} onKeyDown={(e) => {
                             if (e.keyCode == 13) {
-                                if (e.altKey || e.metaKey) {
+                                if (e.altKey || e.metaKey || e.ctrlKey || e.shiftKey) {
                                     setCurrentQuestion(currentQuestion + "\n")
                                     console.log(currentQuestion)
                                     return
