@@ -80,22 +80,8 @@ const MenuView = (props: MenuViewPropsType) => {
             return;
         }
         let func: (uuid: string, title: string, characterSetting: string, model: string) => Promise<string>;
-        let id = ""
         if (!isEdit) {
             func = ConversationCreate
-            ConversationCreate(id, conversationInfo.title, conversationInfo.characterSetting, conversationInfo.model).then((s) => {
-                if (s != "会话创建成功") {
-                    UtilMessageDialog("error", "错误", `会话创建失败(${s})`).then(r => {
-                    })
-                    return
-                }
-                setEditConversationVisible(false)
-
-                ConversationGetList().then((list) => {
-                    setConversationList(list)
-                    list.length > 0 && setCurrentConversationId(0)
-                })
-            })
         } else {
             func = ConversationEdit
         }
