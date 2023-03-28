@@ -1,0 +1,2 @@
+#!/bin/zsh
+sudo xattr -rd com.apple.quarantine /Applications/GPT聊天室.app &

@@ -9,5 +9,13 @@
   "author": {
     "name": "ZingYao",
     "email": "v_zxxzyao@tencent.com"
+  },
+  "version":"v1.1" ,
+  "info": {
+    "companyName": "ZingYao",
+    "productName": "GPT聊天室",
+    "productVersion": "1.1.0",
+    "copyright": "ZingYao",
+    "comments": "Built using Wails (https://wails.io)"
   }
 }
