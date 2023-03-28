@@ -11,7 +11,7 @@ import {
     InputValue,
     Layout,
     MenuValue,
-    MessagePlugin,
+    MessagePlugin, Popup,
     Row,
     Select,
     Textarea
@@ -166,16 +166,22 @@ function App() {
                               currentConversationId={currentConversationId}/>
                 </Aside>
                 <Layout style={{height: "100vh",overflow:"hidden"}}>
-                    <Header style={{height: "120px",marginTop:"-20px"}}>
-                        <h1>{conversationList[currentConversationId]?.Title ?? "等待创建会话"}</h1>
-                        <h5 style={{marginTop:"-15px"}}>会话模型:{conversationList[currentConversationId]?.ChatModel}</h5>
-                        <h6 style={{marginTop:"-25px"}}>会话人设:{conversationList[currentConversationId]?.CharacterSetting}</h6>
+                    <Header style={{height: "70px"}}>
+                        <Popup
+                            overlayStyle={{width:"75%",marginRight:"30px"}}
+                            content={<>
+                                <h2>会话模型:{conversationList[currentConversationId]?.ChatModel}</h2>
+                                <h3>会话人设:{conversationList[currentConversationId]?.CharacterSetting}</h3>
+                            </>}
+                        >
+                            <h1>{conversationList[currentConversationId]?.Title ?? "等待创建会话"}</h1>
+                        </Popup>
                     </Header>
 
                     <Content className="cantDrag">
                         <div id="chatWindow" style={{
                             width: "100%",
-                            height: "calc(100vh - 230px)",
+                            height: "calc(100vh - 200px)",
                             overflowY: "scroll",
                             padding: "10px"
                         }}>
