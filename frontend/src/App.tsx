@@ -198,7 +198,7 @@ function App() {
                                         case "assistant":
                                             // dangerouslySetInnerHTML={{__html: marked(item.content).replace('<a ','<a onclick="console.log("atag",this);return false;" ')}}
                                             return (<div key={index} className="message received"
-                                                         dangerouslySetInnerHTML={{__html: marked(item.content).replace('<a ','<a onclick=\'BrowserOpenURL(this.href);return false;\' ') + `${index},${conversationMessageList.length}` + (index == conversationMessageList.length - 1 && onRecv ? "<div class='cursor'>|</div>":"")}}
+                                                         dangerouslySetInnerHTML={{__html: marked(item.content).replace('<a ','<a onclick=\'BrowserOpenURL(this.href);return false;\' ') + (index == conversationMessageList.length - 1 && onRecv ? "<div class='cursor'></div>":"")}}
                                             >
                                             </div>)
                                         case "user":
