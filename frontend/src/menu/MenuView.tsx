@@ -1,7 +1,5 @@
 import {entities} from "../models";
 import {ReactNode, useEffect, useState} from "react";
-import {Button, Dialog, Input, Menu, MenuValue, MessagePlugin, Select, SelectValue, Textarea} from "tdesign-react";
-import {DeleteIcon, Edit1Icon, PinFilledIcon, PinIcon} from 'tdesign-icons-react';
 import {
     ConfigGet,
     ConfigSetApiKey,
@@ -14,13 +12,18 @@ import {
     UtilMessageDialog
 } from "../../wailsjs/go/main/App";
 import {v4 as uuid} from "uuid";
-import Option from "tdesign-react/es/select/base/Option";
+import {Button, Input, Menu, MenuProps, message, Modal, Select} from "antd";
+import {CommentOutlined} from "@ant-design/icons"
+import Conversation = entities.Conversation;
+import { DefaultOptionType } from "antd/es/select";
 
-const {MenuItem} = Menu
+type MenuItem = Required<MenuProps>['items'][number];
+
 
 type MenuViewPropsType = {
-    onChange: (value: MenuValue) => void,
-    defaultSelected: MenuValue | undefined,
+    // @ts-ignore
+    onChange: ({ item, key, keyPath, selectedKeys, domEvent }) => void,
+    defaultSelected: number,
     conversationList: entities.Conversation[],
     currentConversationId: number
     setConversationList: (list: entities.Conversation[]) => void,
@@ -35,6 +38,7 @@ type ConversationInfoType = {
 }
 
 const MenuView = (props: MenuViewPropsType) => {
+    const [messageApi,contextHolder] = message.useMessage()
     const {onChange, defaultSelected, currentConversationId, setCurrentConversationId, setConversationList} = props
     let {conversationList} = props
 
@@ -134,11 +138,26 @@ const MenuView = (props: MenuViewPropsType) => {
         })
         OpenAiGetModelList().then((list: string[]) => {
             if (list.length == 0) {
-                MessagePlugin.error("获取模型列表失败，请在代理设置中检查连通性")
+                messageApi.error("获取模型列表失败，请在代理设置中检查连通性")
             }
             setModelList(list)
         })
     }, [])
+
+    const getConversationListMenuItems = ():MenuItem[] => {
+        let items: MenuItem[] = []
+        for (let i = 0 ; i < conversationList.length ; i++) {
+            let conversation = conversationList[i]
+             items.push({
+                key:i,
+                label:conversation.Title,
+                children:[],
+                icon:<CommentOutlined />,
+            })
+        }
+
+        return items
+    }
 
     return (
         <>
@@ -153,58 +172,59 @@ const MenuView = (props: MenuViewPropsType) => {
                         overflowY: "scroll",
                         whiteSpace: "nowrap",
                     }}
-                    onChange={onChange}
+                    onSelect={onChange}
                     defaultValue={0}
-                    value={defaultSelected}
+                    defaultOpenKeys={[defaultSelected+""]}
+                    items={getConversationListMenuItems()}
                 >
-                    {conversationList.map(function (c: entities.Conversation, index: number): ReactNode {
-                        return (
-                            <MenuItem value={index} key={c.UUID}
-                                      icon={currentConversationId == index ? <PinFilledIcon/> : <PinIcon/>}>
-                                <div>
-                                    <span>{c.Title}</span>
-                                    <Button shape="circle" theme="default" icon={<Edit1Icon size={"3px"}/>}
-                                            onClick={() => {
-                                                OpenAiGetModelList().then((list: string[]) => {
-                                                        setModelList(list)
-                                                        setIsEdit(true  )
-                                                        setConversationInfo({
-                                                            uuid:c.UUID,
-                                                            characterSetting: c.CharacterSetting,
-                                                            model: c.ChatModel,
-                                                            title: c.Title
-                                                        })
-                                                    }
-                                                ).finally(() => {
-                                                    setEditConversationVisible(true)
-                                                })
-                                            }
-                                            }
-                                    />
-                                    <Button shape="circle" theme="default" icon={<DeleteIcon size={"3px"}/>}
-                                            onClick={() => {
-                                                ConversationDelete(c.UUID).then((res: string) => {
-                                                    if (res == "") {
-                                                        ConversationGetList().then((list) => {
-                                                            setConversationList(list)
-                                                        })
-                                                    } else {
-                                                        MessagePlugin.error(`删除会话失败:${res}`)
-                                                    }
-                                                })
-                                            }
-                                            }/>
-                                </div>
-                            </MenuItem>
-                        )
-                    })}
+                    {/*{conversationList.map(function (c: entities.Conversation, index: number): ReactNode {*/}
+                    {/*    return (*/}
+                    {/*        <MenuItem value={index} key={c.UUID}*/}
+                    {/*                  icon={currentConversationId == index ? <PinFilledIcon/> : <PinIcon/>}>*/}
+                    {/*            <div>*/}
+                    {/*                <span>{c.Title}</span>*/}
+                    {/*                <Button shape="circle" theme="default" icon={<Edit1Icon size={"3px"}/>}*/}
+                    {/*                        onClick={() => {*/}
+                    {/*                            OpenAiGetModelList().then((list: string[]) => {*/}
+                    {/*                                    setModelList(list)*/}
+                    {/*                                    setIsEdit(true  )*/}
+                    {/*                                    setConversationInfo({*/}
+                    {/*                                        uuid:c.UUID,*/}
+                    {/*                                        characterSetting: c.CharacterSetting,*/}
+                    {/*                                        model: c.ChatModel,*/}
+                    {/*                                        title: c.Title*/}
+                    {/*                                    })*/}
+                    {/*                                }*/}
+                    {/*                            ).finally(() => {*/}
+                    {/*                                setEditConversationVisible(true)*/}
+                    {/*                            })*/}
+                    {/*                        }*/}
+                    {/*                        }*/}
+                    {/*                />*/}
+                    {/*                <Button shape="circle" theme="default" icon={<DeleteIcon size={"3px"}/>}*/}
+                    {/*                        onClick={() => {*/}
+                    {/*                            ConversationDelete(c.UUID).then((res: string) => {*/}
+                    {/*                                if (res == "") {*/}
+                    {/*                                    ConversationGetList().then((list) => {*/}
+                    {/*                                        setConversationList(list)*/}
+                    {/*                                    })*/}
+                    {/*                                } else {*/}
+                    {/*                                    MessagePlugin.error(`删除会话失败:${res}`)*/}
+                    {/*                                }*/}
+                    {/*                            })*/}
+                    {/*                        }*/}
+                    {/*                        }/>*/}
+                    {/*            </div>*/}
+                    {/*        </MenuItem>*/}
+                    {/*    )*/}
+                    {/*})}*/}
                 </Menu>
 
                 <div>
                     <Button style={{width: "100%", height: "40px"}} onClick={() => {
                         OpenAiGetModelList().then((list: string[]) => {
                             if (list.length == 0) {
-                                MessagePlugin.error("获取模型列表失败，请在代理设置中检查连通性")
+                                messageApi.error("获取模型列表失败，请在代理设置中检查连通性")
                             }
                             setModelList(list)
                             setIsEdit(false)
@@ -222,55 +242,58 @@ const MenuView = (props: MenuViewPropsType) => {
                         setProxyConfigVisible(true)
                     }}>设置代理</Button>
                 </div>
-                <Dialog
-                    header={isEdit ? '编辑会话' : '新建会话'}
-                    visible={editConversationVisible}
-                    onClose={() => {
+                <Modal
+                    title={isEdit ? '编辑会话' : '新建会话'}
+                    open={editConversationVisible}
+                    onCancel={() => {
                         setEditConversationVisible(false)
                         resetEditConversationWindowData()
                     }}
-                    onConfirm={() => submitConversation()}
+                    onOk={() => submitConversation()}
                 >
                     <div>
                         <label>会话标题</label>
-                        <Input placeholder="会话标题" value={conversationInfo.title} onChange={(v: string) => {
-                            conversationInfo.title = v.trim()
+                        <Input placeholder="会话标题" value={conversationInfo.title} onChange={(v) => {
+                            conversationInfo.title = v.toString().trim()
                             setConversationInfo(conversationInfo)
                         }}></Input>
                     </div>
                     <div>
                         <label>会话人设</label>
-                        <Textarea autosize={{minRows: 2, maxRows: 5}} placeholder="会话人设"
+                        <Input.TextArea autoSize={{minRows: 2, maxRows: 5}} placeholder="会话人设"
                                   value={conversationInfo.characterSetting}
-                                  onChange={(v: string) => {
-                                      conversationInfo.characterSetting = v
+                                  onChange={(v) => {
+                                      conversationInfo.characterSetting = v.toString()
                                       setConversationInfo(conversationInfo)
-                                  }}></Textarea>
+                                  }}></Input.TextArea>
                     </div>
                     <div>
                         <label>会话模型</label>
-                        <Select placeholder="会话模型" value={conversationInfo.model} filterable
-                                onChange={(m: SelectValue) => {
+                        <Select placeholder="会话模型" value={conversationInfo.model}
+                                onChange={(m) => {
                                     conversationInfo.model = m.toString()
                                     setConversationInfo(conversationInfo)
-                                }}>
-                            {modelList.sort().map((model: string, index: number) => (
-                                <Option key={index} value={model} label={model}></Option>
-                            ))}
+                                }}
+                                options={modelList.sort().map((model: string, index: number) => (
+                                    {value:model,label:model}
+                                ))}
+                        >
+                            {/*{modelList.sort().map((model: string, index: number) => (*/}
+                            {/*    <Option key={index} value={model} label={model}></Option>*/}
+                            {/*))}*/}
                         </Select>
                     </div>
-                </Dialog>
-                <Dialog
-                    header="请输入apikey"
-                    visible={apiKeyConfigVisible}
-                    onClose={() => {
+                </Modal>
+                <Modal
+                    title="请输入apikey"
+                    open={apiKeyConfigVisible}
+                    onCancel={() => {
                         ConfigGet().then(config => {
                             setApiKey(config.ApiKey)
                         })
                         setApiKeyVisible(false)
                     }}
-                    confirmOnEnter={true}
-                    onConfirm={() => {
+                    onOk={() => {
                         if (apiKey == "") {
                             UtilMessageDialog("error", "错误", "apiKey不能为空").catch((e) => {
                                 console.log("error", e)
@@ -283,37 +306,36 @@ const MenuView = (props: MenuViewPropsType) => {
                 >
                     <Input
                         value={apiKey.length <= 11 ? apiKey : apiKey.slice(1, 5) + "******" + apiKey.slice(apiKey.length - 5, apiKey.length)}
-                        placeholder="OpenAI Api Key" onChange={(v: string) => {
-                        setApiKey(v.trim())
+                        placeholder="OpenAI Api Key" onChange={(v) => {
+                        setApiKey(v.toString())
                     }}></Input>
-                </Dialog>
-                <Dialog
-                    header="请输入代理地址"
-                    visible={proxyConfigVisible}
-                    onClose={() => {
+                </Modal>
+                <Modal
+                    title="请输入代理地址"
+                    open={proxyConfigVisible}
+                    onCancel={() => {
                         ConfigGet().then(config => {
                             setProxyAddr(config.ProxyAddr)
                         })
                         setProxyConfigVisible(false)
                     }}
-                    confirmOnEnter={true}
-                    onConfirm={() => {
+                    onOk={() => {
                         ConfigSetProxy(proxyAddr)
                         setProxyConfigVisible(false)
                     }}
                 >
-                    <Input placeholder="代理地址" value={proxyAddr} onChange={(v: string) => {
-                        setProxyAddr(v.trim())
+                    <Input placeholder="代理地址" value={proxyAddr} onChange={(v) => {
+                        setProxyAddr(v.toString())
                     }}></Input>
                     <Input value={proxyTestAddr} style={{width: "70%", float: "left"}}
-                           onChange={setProxyTestAddr}></Input>
+                           onChange={(v)=>setProxyTestAddr(v.toString())}></Input>
                     <Button style={{float: "right", width: "30%"}} onClick={() => {
                         UtilCheckProxy(proxyAddr, proxyTestAddr).then((rsp: string) => {
-                            MessagePlugin.info(rsp)
+                            messageApi.info(rsp)
                         })
                     }
                     }>检查连通性</Button>
-                </Dialog>
+                </Modal>
             </div>
         </>);
 }

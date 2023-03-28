@@ -16,6 +16,7 @@
 .received {
     background-color: #e5e5ea;
     align-self: flex-start;
+    color: #2c2c2c;
 }
 
 .sent {
