@@ -74,6 +74,9 @@ const MenuView = (props: MenuViewPropsType) => {
             setProxyAddr(config.ProxyAddr)
         })
         OpenAiGetModelList().then((list: string[]) => {
+            if (list.length == 0) {
+                MessagePlugin.error("获取模型列表失败，请在代理设置中检查连通性")
+            }
             setModelList(list)
         })
     }, [])
@@ -112,6 +115,9 @@ const MenuView = (props: MenuViewPropsType) => {
                 <div>
                     <Button style={{width: "100%", height: "40px"}} onClick={() => {
                         OpenAiGetModelList().then((list: string[]) => {
+                            if (list.length == 0) {
+                                MessagePlugin.error("获取模型列表失败，请在代理设置中检查连通性")
+                            }
                             setModelList(list)
                             setNewConversationVisible(true)
                         })
@@ -135,12 +141,12 @@ const MenuView = (props: MenuViewPropsType) => {
                         document.getElementById("conversationResetBtn")?.click()
                     }}
                     onConfirm={() => {
-                        if (conversationTitle == "") {
+                        if (!conversationTitle || conversationTitle == "") {
                             UtilMessageDialog("error", "错误", "会话标题不能为空").then(r => {
                             })
                             return
                         }
-                        if (conversationModel == "") {
+                        if (!conversationModel || conversationModel == "") {
                             UtilMessageDialog("error", "错误", "会话模型不能为空").then(r => {
                             })
                             return;
