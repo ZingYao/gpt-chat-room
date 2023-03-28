@@ -138,6 +138,7 @@ function App() {
         //添加会话信息
         conversationMessageList = conversationMessageList.concat([{role: "user", name: "fiona", content: question}])
         setConversationMessageList(conversationMessageList)
+        setCurrentQuestion("")
         //提交会话请求
         OpenAiChat(conversation.UUID, question, token).then((res: string) => {
             setOverResponse(true)
@@ -195,7 +196,7 @@ function App() {
                                         case "user":
                                             return (
                                                 <div key={index} className="message sent"
-                                                     dangerouslySetInnerHTML={{__html: item.content}}>
+                                                     dangerouslySetInnerHTML={{__html: marked(item.content).replace('<a ','<a onclick=\'BrowserOpenURL(this.href);return false;\' ')}}>
                                                 </div>)
                                         case "system":
                                             return (<></>)
@@ -217,18 +218,19 @@ function App() {
                                     </Select>
                                 </Col>
                                 <Col span={9} key="input">
-                                    <FormItem name="question">
+                                    {/*<FormItem name="question">*/}
                                         <Textarea autosize={{minRows: 1, maxRows: 8}} value={currentQuestion} onChange={setCurrentQuestion}
                                                onKeydown={(value: InputValue, context) => {
                                                    console.log("context",context)
                                                    if ((!context.e.altKey && !context.e.metaKey) && context.e.keyCode==13) {
                                                        submitQuestion()
+                                                       context.e.preventDefault()
                                                    } else if((context.e.altKey || context.e.metaKey) && context.e.keyCode == 13) {
-                                                       setCurrentQuestion(`${currentQuestion}\n\n`)
+                                                       setCurrentQuestion(`${currentQuestion}\n`)
                                                    }
                                                }
                                                }/>
-                                    </FormItem>
+                                    {/*</FormItem>*/}
                                 </Col>
                                 <Col span={1} key="senderBtn">
                                     <FormItem style={{marginLeft: "5px", width: "100%"}}>
