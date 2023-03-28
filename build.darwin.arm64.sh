@@ -12,7 +12,8 @@ ln -s /Applications ./build/bin/
 cp ./修复已破损 ./build/bin/
 chmod +x ./build/bin/修复已破损
 
-hdiutil create -fs HFS+ -srcfolder ./build/bin -volname "GPT聊天室" ./build/bin/GPT聊天室.arm64
+version=$(cat wails.json |jq -r '.version')
+hdiutil create -fs HFS+ -srcfolder ./build/bin -volname "GPT聊天室" ./build/bin/GPT聊天室."$version".arm64
 if [ $? != 0 ]; then
   echo "构建镜像失败"
 fi
