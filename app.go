@@ -7,7 +7,6 @@ import (
 	"fiona_work_support/model/dao"
 	"fiona_work_support/model/entities"
 	"fmt"
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/sashabaranov/go-openai"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -60,7 +59,6 @@ func (a *App) startup(ctx context.Context) {
 		panic(err)
 	}
 	a.reloadClient()
-	config.SetRequestKey(uuid.New().String())
 }
 
 func (a *App) reloadClient() {
@@ -79,7 +77,7 @@ func (a *App) reloadClient() {
 }
 
 func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
-	var conversation Conversation
+	// 判断是否已经配置了OpenAI的apiKey，如果没有则提示用户需要配置
 	if a.client == nil {
 		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
 			Type:    runtime.ErrorDialog,
@@ -88,38 +86,47 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 		})
 		return "请配置ApiKey后再试~"
 	}
+
+	// 获取本次会话的历史记录
 	conversation, err := a.getConversation(uuid)
 	if err != nil {
-		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
-			Type:    runtime.ErrorDialog,
-			Title:   "出错了",
-			Message: fmt.Sprintf("获取会话出错(%v)", err),
-		})
 		return ""
 	}
+
+	// 将用户的问题添加到历史记录列表中
 	conversation.list = append(conversation.list, openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleUser,
 		Content: question,
 		Name:    "user",
 	})
+
 	var length int
+	// 获取当前模型的最大token数量
 	maxToken := common.GetMaxToken(conversation.model)
+	// 根据历史记录的长度以及请求的token数量获取历史记录列表
 	conversation.list, length = common.GetConversationListByToken(conversation.list, maxToken-token)
+
+	// 如果获取到的历史记录过短，则返回错误信息
 	if maxToken-token-length <= 0 {
 		return "会话响应长度过短"
 	}
+
+	// 如果历史记录过长，则返回错误信息
 	if len(conversation.list) == 1 {
 		return "会话过长，请新建会话后重试"
 	}
+
+	// 连接OpenAI Chat Completion API，并发送请求，等待响应
 	stream, err := a.client.CreateChatCompletionStream(
 		a.ctx,
 		openai.ChatCompletionRequest{
-			Model:     openai.GPT3Dot5Turbo,
-			Messages:  conversation.list,
-			MaxTokens: 1024,
+			Model:     openai.GPT3Dot5Turbo, // 模型选择
+			Messages:  conversation.list,    // 历史记录列表
+			MaxTokens: token,                // 最大token数量
 		},
 	)
 	if err != nil {
+		// 如果连接或请求出错，则弹出错误提示框
 		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
 			Type:    runtime.ErrorDialog,
 			Title:   "请求出错",
@@ -129,16 +136,20 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 		return ""
 	}
 	defer stream.Close()
+
 	var msg string
+	// 开启goroutine来定时发送消息
 	go func() {
 		for {
-			runtime.EventsEmit(a.ctx, "stream-msg", msg)
+			runtime.EventsEmit(a.ctx, "stream-msg", msg) // 触发事件传递消息
 			if err != nil {
 				return
 			}
 			time.Sleep(300 * time.Millisecond)
 		}
 	}()
+
+	// 获取OpenAI API的响应
 	for {
 		var response openai.ChatCompletionStreamResponse
 		response, err = stream.Recv()
@@ -150,6 +161,8 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 		}
 		msg = msg + response.Choices[0].Delta.Content
 	}
+
+	// 创建聊天机器人的回复，并添加到历史记录列表中
 	answer := openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleAssistant,
 		Content: msg,
@@ -157,9 +170,11 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 	}
 	answer.Name = openai.ChatMessageRoleAssistant
 	conversation.list = append(conversation.list, answer)
+	// 更新历史记录，并将机器人的回答存储到数据库中
 	conversationList[uuid] = conversation
 	a.messageDao.NewMessageBatch(conversation.id, uuid, conversation.list[len(conversation.list)-2:])
 	time.Sleep(300 * time.Millisecond)
+
 	return "success"
 }
 
@@ -275,11 +290,6 @@ func (a *App) getConversation(uuid string) (conversation Conversation, err error
 func (a *App) MessageGetList(uuid string) []openai.ChatCompletionMessage {
 	conversation, err := a.getConversation(uuid)
 	if err != nil {
-		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
-			Type:    runtime.ErrorDialog,
-			Title:   "出错了",
-			Message: fmt.Sprintf("获取会话出错(%v)", err),
-		})
 		return make([]openai.ChatCompletionMessage, 0)
 	}
 	return conversation.list
@@ -296,25 +306,6 @@ func (a *App) ConversationGetList() []entities.Conversation {
 		return make([]entities.Conversation, 0)
 	}
 	return conversationList
-}
-
-func (a *App) ConversationCreate(uuid, title, characterSetting, model string) string {
-	conversation, err := a.conversationDao.NewOne(uuid, title, characterSetting, model)
-	if err != nil {
-		return err.Error()
-	}
-	conversationList[uuid] = Conversation{
-		id:    conversation.ID,
-		model: model,
-		list: []openai.ChatCompletionMessage{
-			{
-				Role:    openai.ChatMessageRoleSystem,
-				Content: characterSetting,
-				Name:    openai.ChatMessageRoleSystem,
-			},
-		},
-	}
-	return "会话创建成功"
 }
 
 func (a *App) ConfigGet() entities.Config {
@@ -341,20 +332,62 @@ func (a *App) ConfigSetProxy(proxyAddr string) bool {
 	return true
 }
 
-func (a *App) ConfigGetRequestKey() string {
-	return config.GetRequestKey()
+func (a *App) ConversationCreate(uuid, title, characterSetting, model string) string {
+	if uuid == "" {
+		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+			Type:    "error",
+			Title:   "错误",
+			Message: "uuid 不能为空",
+		})
+		return "uuid 不能为空"
+	}
+	if title == "" {
+		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+			Type:    "error",
+			Title:   "错误",
+			Message: "标题 不能为空",
+		})
+		return "标题 不能为空"
+	}
+	if model == "" {
+		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+			Type:    "error",
+			Title:   "错误",
+			Message: "模型 不能为空",
+		})
+		return "模型 不能为空"
+	}
+	conversation, err := a.conversationDao.NewOne(uuid, title, characterSetting, model)
+	if err != nil {
+		return err.Error()
+	}
+	conversationList[uuid] = Conversation{
+		id:    conversation.ID,
+		model: model,
+		list: []openai.ChatCompletionMessage{
+			{
+				Role:    openai.ChatMessageRoleSystem,
+				Content: characterSetting,
+				Name:    openai.ChatMessageRoleSystem,
+			},
+		},
+	}
+	return "会话创建成功"
 }
-
 func (a *App) ConversationDelete(uuid string) string {
-	err := a.conversationDao.DelOneByUUID(uuid)
+	err := a.messageDao.DeleteByUUID(uuid)
+	if err != nil {
+		return err.Error()
+	}
+	err = a.conversationDao.DelOneByUUID(uuid)
 	if err != nil {
 		return err.Error()
 	}
 	return ""
 }
 
-func (a *App) ConversationRename(uuid string, title string) string {
-	err := a.conversationDao.UpdateConversation(uuid, entities.Conversation{Title: title})
+func (a *App) ConversationEdit(uuid, title, characterSetting, model string) string {
+	err := a.conversationDao.UpdateConversation(uuid, entities.Conversation{Title: title, CharacterSetting: characterSetting, ChatModel: model})
 	if err != nil {
 		return err.Error()
 	}

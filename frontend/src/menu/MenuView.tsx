@@ -242,7 +242,7 @@ const MenuView = (props: MenuViewPropsType) => {
                         setProxyConfigVisible(false)
                     }}
                 >
-                    <Input placeholder="代理地址" onChange={(v: string) => {
+                    <Input placeholder="代理地址" value={proxyAddr} onChange={(v: string) => {
                         setProxyAddr(v.trim())
                     }}></Input>
                     <Input value={proxyTestAddr} style={{width: "70%", float: "left"}}

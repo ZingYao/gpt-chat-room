@@ -6,10 +6,6 @@ export function ConfigGet() {
   return window['go']['main']['App']['ConfigGet']();
 }
 
-export function ConfigGetRequestKey() {
-  return window['go']['main']['App']['ConfigGetRequestKey']();
-}
-
 export function ConfigSetApiKey(arg1) {
   return window['go']['main']['App']['ConfigSetApiKey'](arg1);
 }
@@ -26,12 +22,12 @@ export function ConversationDelete(arg1) {
   return window['go']['main']['App']['ConversationDelete'](arg1);
 }
 
-export function ConversationGetList() {
-  return window['go']['main']['App']['ConversationGetList']();
+export function ConversationEdit(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['ConversationEdit'](arg1, arg2, arg3, arg4);
 }
 
-export function ConversationRename(arg1, arg2) {
-  return window['go']['main']['App']['ConversationRename'](arg1, arg2);
+export function ConversationGetList() {
+  return window['go']['main']['App']['ConversationGetList']();
 }
 
 export function MessageGetList(arg1) {

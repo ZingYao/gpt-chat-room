@@ -58,7 +58,7 @@ func (c *conversationDao) GetList(title, uuid string, id, page, limit int) (tota
 		err = rsp.Error
 		return
 	}
-	rsp = c.db.Offset((page - 1) * limit).Limit(limit).Order("created_at desc").Find(&cList)
+	rsp = query.Offset((page - 1) * limit).Limit(limit).Order("created_at desc").Find(&cList)
 	if rsp.Error != nil {
 		err = rsp.Error
 		return

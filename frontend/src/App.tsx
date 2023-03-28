@@ -3,7 +3,7 @@ import {marked} from 'marked';
 import './App.css';
 import {MessageGetList, OpenAiChat, OpenAiGetMaxToken, UtilMessageDialog} from "../wailsjs/go/main/App";
 import {EventsOn} from '../wailsjs/runtime/runtime'
-import {Button, Col, Form, Input, Layout, MenuValue, MessagePlugin, Row, Select} from 'tdesign-react'
+import {Button, Col, Form, Input, Layout, MenuValue, MessagePlugin, Popup, Row, Select} from 'tdesign-react'
 import {openai} from "../wailsjs/go/models";
 import {entities} from "./models";
 import hljs from "highlight.js"
@@ -149,10 +149,16 @@ function App() {
                               currentConversationId={currentConversationId}/>
                 </Aside>
                 <Layout style={{height: "100vh",overflow:"hidden"}}>
-                    <Header style={{height: "120px",marginTop:"-20px"}}>
-                        <h1>{conversationList[currentConversationId]?.Title ?? "等待创建会话"}</h1>
-                        <h5 style={{marginTop:"-15px"}}>会话模型:{conversationList[currentConversationId]?.ChatModel}</h5>
-                        <h6 style={{marginTop:"-25px"}}>会话人设:{conversationList[currentConversationId]?.CharacterSetting}</h6>
+                    <Header style={{height: "70px"}}>
+                        <Popup
+                            overlayStyle={{width:"75%",marginRight:"30px"}}
+                            content={<>
+                                <h2>会话模型:{conversationList[currentConversationId]?.ChatModel}</h2>
+                                <h3>会话人设:{conversationList[currentConversationId]?.CharacterSetting}</h3>
+                            </>}
+                        >
+                            <h1>{conversationList[currentConversationId]?.Title ?? "等待创建会话"}</h1>
+                        </Popup>
                     </Header>
 
                     <Content className="cantDrag">
