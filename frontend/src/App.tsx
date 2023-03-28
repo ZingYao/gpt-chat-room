@@ -3,7 +3,19 @@ import {marked} from 'marked';
 import './App.css';
 import {MessageGetList, OpenAiChat, OpenAiGetMaxToken, UtilMessageDialog} from "../wailsjs/go/main/App";
 import {BrowserOpenURL, EventsOn} from '../wailsjs/runtime/runtime'
-import {Button, Col, Form, Input, Layout, MenuValue, MessagePlugin, Row, Select} from 'tdesign-react'
+import {
+    Button,
+    Col,
+    Form,
+    Input,
+    InputValue,
+    Layout,
+    MenuValue,
+    MessagePlugin,
+    Row,
+    Select,
+    Textarea
+} from 'tdesign-react'
 import {openai} from "../wailsjs/go/models";
 import {entities} from "./models";
 import hljs from "highlight.js"
@@ -206,8 +218,16 @@ function App() {
                                 </Col>
                                 <Col span={9} key="input">
                                     <FormItem name="question">
-                                        <Input value={currentQuestion} onChange={setCurrentQuestion}
-                                               onEnter={submitQuestion}/>
+                                        <Textarea autosize={{minRows: 1, maxRows: 8}} value={currentQuestion} onChange={setCurrentQuestion}
+                                               onKeydown={(value: InputValue, context) => {
+                                                   console.log("context",context)
+                                                   if ((!context.e.altKey && !context.e.metaKey) && context.e.keyCode==13) {
+                                                       submitQuestion()
+                                                   } else if((context.e.altKey || context.e.metaKey) && context.e.keyCode == 13) {
+                                                       setCurrentQuestion(`${currentQuestion}\n\n`)
+                                                   }
+                                               }
+                                               }/>
                                     </FormItem>
                                 </Col>
                                 <Col span={1} key="senderBtn">
