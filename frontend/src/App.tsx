@@ -38,6 +38,7 @@ function App() {
     let [currentQuestion, setCurrentQuestion] = useState("")
     let [overResponse, setOverResponse] = useState(true)
     let [conversationToken, setConversationToken] = useState("min")
+    let [onRecv,setOnRecv] = useState(false)
     let maxToken = 512
 
     let [form] = Form.useForm();
@@ -139,6 +140,7 @@ function App() {
         conversationMessageList = conversationMessageList.concat([{role: "user", name: "fiona", content: question}])
         setConversationMessageList(conversationMessageList)
         setCurrentQuestion("")
+        setOnRecv(true)
         //提交会话请求
         OpenAiChat(conversation.UUID, question, token).then((res: string) => {
             setOverResponse(true)
@@ -147,6 +149,7 @@ function App() {
             if (res != "success") {
                 MessagePlugin.info(res)
             }
+            setOnRecv(false)
         })
         conversationMessageList = conversationMessageList.concat([{role: "assistant", name: "zing", content: ""}])
         //会话结果添加
@@ -195,14 +198,13 @@ function App() {
                                         case "assistant":
                                             // dangerouslySetInnerHTML={{__html: marked(item.content).replace('<a ','<a onclick="console.log("atag",this);return false;" ')}}
                                             return (<div key={index} className="message received"
-                                                         dangerouslySetInnerHTML={{__html: marked(item.content).replace('<a ','<a onclick=\'BrowserOpenURL(this.href);return false;\' ')}}
+                                                         dangerouslySetInnerHTML={{__html: marked(item.content).replace('<a ','<a onclick=\'BrowserOpenURL(this.href);return false;\' ') + `${index},${conversationMessageList.length}` + (index == conversationMessageList.length - 1 && onRecv ? "<div class='cursor'>|</div>":"")}}
                                             >
-                                                {/*{marked(item.content).replace('<a ','<a onClick="console.log("atag",this);return false;" ')}*/}
                                             </div>)
                                         case "user":
                                             return (
                                                 <div key={index} className="message sent"
-                                                     dangerouslySetInnerHTML={{__html: marked(item.content).replace('<a ','<a onclick=\'BrowserOpenURL(this.href);return false;\' ')}}>
+                                                     dangerouslySetInnerHTML={{__html: marked(item.content).replace("\n","\n\n").replace('<a ','<a onclick=\'BrowserOpenURL(this.href);return false;\' ')}}>
                                                 </div>)
                                         case "system":
                                             return (<></>)
@@ -227,12 +229,13 @@ function App() {
                                     {/*<FormItem name="question">*/}
                                         <Textarea autosize={{minRows: 1, maxRows: 8}} value={currentQuestion} onChange={setCurrentQuestion}
                                                onKeydown={(value: InputValue, context) => {
-                                                   console.log("context",context)
-                                                   if ((!context.e.altKey && !context.e.metaKey) && context.e.keyCode==13) {
+                                                   if (context.e.keyCode == 13) {
+                                                       if (context.e.altKey || context.e.ctrlKey || context.e.shiftKey || context.e.metaKey) {
+                                                           setCurrentQuestion(`${currentQuestion}\n`)
+                                                           return
+                                                       }
                                                        submitQuestion()
                                                        context.e.preventDefault()
-                                                   } else if((context.e.altKey || context.e.metaKey) && context.e.keyCode == 13) {
-                                                       setCurrentQuestion(`${currentQuestion}\n`)
                                                    }
                                                }
                                                }/>

@@ -37,3 +37,24 @@ html {
     height: 100%;
     overflow: hidden;
 }
+
+.cursor::before {
+    content: "";
+    width: 2px;
+    height: 20px;
+    background-color: #000;
+    position: absolute;
+    animation: cursor-blink 1s infinite;
+}
+
+@keyframes cursor-blink {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
