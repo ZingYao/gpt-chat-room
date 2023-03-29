@@ -7,12 +7,11 @@ import {
   OpenAiGetMaxToken,
   UtilMessageDialog,
 } from '../wailsjs/go/main/App';
-import { BrowserOpenURL, EventsOn } from '../wailsjs/runtime/runtime';
+import {BrowserOpenURL, ClipboardSetText, EventsOn} from '../wailsjs/runtime';
 import {
   Button,
   Col,
   Form,
-  Input,
   InputValue,
   Layout,
   MenuValue,
@@ -25,7 +24,7 @@ import {
 import { openai } from '../wailsjs/go/models';
 import { entities } from './models';
 import hljs from 'highlight.js';
-import 'highlight.js/styles/github.css';
+import 'highlight.js/styles/atom-one-dark-reasonable.css';
 import MenuView from './menu/MenuView';
 import Option from 'tdesign-react/es/select/base/Option';
 
@@ -33,6 +32,17 @@ const { FormItem } = Form;
 const { Header, Aside, Footer, Content } = Layout;
 // @ts-ignore
 window.BrowserOpenURL = BrowserOpenURL;
+// @ts-ignore
+window.ClipboardSetText = function (dom) {
+  let codeDom =dom.parentNode.parentNode
+  let str = ""
+  for (let i = 1;i<codeDom.childNodes.length;i++) {
+    let node = codeDom.childNodes[i]
+    str = `${str}${node.innerHTML??node.innerText}`
+  }
+  ClipboardSetText(str)
+}
+
 function App() {
   //会话列表
   let [conversationList, setConversationList] = useState<
@@ -56,8 +66,10 @@ function App() {
 
   // 设置markdown高亮
   marked.setOptions({
-    highlight: function (code, lang, callback) {
-      return hljs.highlightAuto(code, [lang]).value;
+    highlight: function (code, lang) {
+      let value = hljs.highlightAuto(code, [lang]).value
+      value = `<div style="background-color: #3e3e3e;border-radius:5px;box-shadow: 0 0 3px #a6a6a6;width: 100%"><span>${lang}</span><button style="margin-right: 3px" onclick="ClipboardSetText(this)">复制</button></div>${value}`
+      return value;
     },
   });
 
@@ -267,7 +279,6 @@ function App() {
                                 if (divTag.lastChild != null) {
                                   const lastChild =
                                     divTag.lastChild as HTMLElement;
-                                  console.info('lastChild', lastChild);
                                   lastChild.classList.add('cursor');
                                 }
                                 return divTag.innerHTML;
@@ -275,11 +286,6 @@ function App() {
                                 return markStr;
                               }
                             })(),
-                            //   "<div class='cursor'></div>"
-                            //   (index == conversationMessageList.length - 1 &&
-                            //   onRecv
-                            //     ? "<div class='cursor'></div>"
-                            //     : ''),
                           }}
                         ></div>
                       );

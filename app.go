@@ -79,7 +79,7 @@ func (a *App) reloadClient() {
 func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 	// 判断是否已经配置了OpenAI的apiKey，如果没有则提示用户需要配置
 	if a.client == nil {
-		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+		_, _ = runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
 			Type:    runtime.ErrorDialog,
 			Title:   "配置出错",
 			Message: fmt.Sprintf("请先配置ApiKey"),
@@ -127,7 +127,7 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 	)
 	if err != nil {
 		// 如果连接或请求出错，则弹出错误提示框
-		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+		_, _ = runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
 			Type:    runtime.ErrorDialog,
 			Title:   "请求出错",
 			Message: fmt.Sprintf("出错了(%v)", err),
@@ -145,7 +145,7 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 			if err != nil {
 				return
 			}
-			time.Sleep(300 * time.Millisecond)
+			time.Sleep(800 * time.Millisecond)
 		}
 	}()
 
@@ -172,8 +172,9 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 	conversation.list = append(conversation.list, answer)
 	// 更新历史记录，并将机器人的回答存储到数据库中
 	conversationList[uuid] = conversation
-	a.messageDao.NewMessageBatch(conversation.id, uuid, conversation.list[len(conversation.list)-2:])
-	time.Sleep(300 * time.Millisecond)
+	_ = a.messageDao.NewMessageBatch(conversation.id, uuid, conversation.list[len(conversation.list)-2:])
+	runtime.EventsEmit(a.ctx, "stream-msg", msg) // 触发事件传递消息
+	time.Sleep(800 * time.Millisecond)
 
 	return "success"
 }
@@ -231,7 +232,9 @@ func (a *App) UtilCheckProxy(proxyAddr string, webAddr string) string {
 	if err != nil {
 		return fmt.Sprintf("请求出错(%v)", err)
 	}
-	defer rsp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(rsp.Body)
 	body, err := ioutil.ReadAll(rsp.Body)
 	if err != nil {
 		return fmt.Sprintf("获取请求结果正文失败(%v)", err)
@@ -248,7 +251,7 @@ func (a *App) getConversation(uuid string) (conversation Conversation, err error
 	if conversation, exists = conversationList[uuid]; !exists {
 		total, cL, err := a.conversationDao.GetList("", uuid, 0, 1, 1)
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+			_, _ = runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
 				Type:    runtime.ErrorDialog,
 				Title:   "错误",
 				Message: "创建会话失败",
@@ -298,7 +301,7 @@ func (a *App) MessageGetList(uuid string) []openai.ChatCompletionMessage {
 func (a *App) ConversationGetList() []entities.Conversation {
 	_, conversationList, err := a.conversationDao.GetList("", "", 0, 1, 100)
 	if err != nil {
-		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+		_, _ = runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
 			Type:    runtime.ErrorDialog,
 			Title:   "出错了",
 			Message: fmt.Sprintf("获取会话列表出错(%v)", err),
@@ -334,7 +337,7 @@ func (a *App) ConfigSetProxy(proxyAddr string) bool {
 
 func (a *App) ConversationCreate(uuid, title, characterSetting, model string) string {
 	if uuid == "" {
-		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+		_, _ = runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
 			Type:    "error",
 			Title:   "错误",
 			Message: "uuid 不能为空",
@@ -342,7 +345,7 @@ func (a *App) ConversationCreate(uuid, title, characterSetting, model string) st
 		return "uuid 不能为空"
 	}
 	if title == "" {
-		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+		_, _ = runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
 			Type:    "error",
 			Title:   "错误",
 			Message: "标题 不能为空",
@@ -350,7 +353,7 @@ func (a *App) ConversationCreate(uuid, title, characterSetting, model string) st
 		return "标题 不能为空"
 	}
 	if model == "" {
-		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+		_, _ = runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
 			Type:    "error",
 			Title:   "错误",
 			Message: "模型 不能为空",
