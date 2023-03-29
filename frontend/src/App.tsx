@@ -53,7 +53,7 @@ window.ClipboardSetText = function (dom) {
     })
     // 复制选择的内容到系统剪切板
     // document.execCommand("copy");
-    alert("已复制");
+    // alert("已复制");
 
     // let codeDom =dom.parentNode.parentNode
     // let str = ""
@@ -297,7 +297,7 @@ function App() {
                                                             const divTag = document.createElement('div');
                                                             divTag.innerHTML = markStr.trim();
                                                             for (let i = 0; i < divTag.childNodes.length; i++) {
-                                                                let preTag = divTag.childNodes[i]
+                                                                let preTag = divTag.childNodes.item(i)
                                                                 if (preTag.nodeName.toLowerCase() == "pre") {
                                                                     let codeTag = preTag.lastChild
                                                                     if (!codeTag) {
@@ -310,7 +310,11 @@ function App() {
                                                                     codeBar.innerHTML = `<span>${language}</span><button style="font-size: small" onclick="ClipboardSetText(this)">复制</button>`
                                                                     // @ts-ignore
                                                                     preTag.innerHTML = codeBar.outerHTML + codeTag.outerHTML
-                                                                    divTag.childNodes[i] = preTag
+                                                                    // try {
+                                                                    //     divTag.childNodes[i] = preTag
+                                                                    // } catch (e) {
+                                                                    //     console.log("err",e,divTag.childNodes[,i)
+                                                                    // }
                                                                 }
                                                             }
                                                             if (
