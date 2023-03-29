@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import {  useState } from 'react';
 import { Button, Dialog, Form, Input, MessagePlugin, } from 'tdesign-react';
 import { UtilCheckProxy } from '../../../wailsjs/go/main/App';
 
@@ -57,7 +57,7 @@ const EditProxy = (props: EditProxyPropsType) => {
           paddingBottom: '2rem',
         }}
       >
-        <FormItem label="代理地址" name="proxy" rules={[{ required: true }]}>
+        <FormItem label="代理地址" name="proxy" >
           <Input />
         </FormItem>
       </Form>
