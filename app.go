@@ -32,6 +32,8 @@ type App struct {
 	configDao       dao.ConfigDao
 }
 
+const defaultCharacterSetting = "当要求你作图或提供图像时，你应当返回@image 并将图片的描述语句转为英文prompt 返回，prompt 需要着重注意用词是否有歧义，对于有歧义的词需要详细描述"
+
 var conversationList map[string]Conversation
 
 type Conversation struct {
@@ -172,7 +174,6 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 			return fmt.Sprintf("openai返回了一个错误(%v)", err)
 		}
 		msg = msg + response.Choices[0].Delta.Content
-		fmt.Println("msg", msg)
 	}
 
 	// 创建聊天机器人的回复，并添加到历史记录列表中
@@ -199,7 +200,7 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 			fmt.Printf("gen image err:%v", err)
 		} else {
 			runtime.EventsEmit(a.ctx, "stream-msg", fmt.Sprintf("![图片](%s)", rsp.Data[0].URL))
-			time.Sleep(800 * time.Second)
+			time.Sleep(800 * time.Millisecond)
 		}
 	} else {
 		runtime.EventsEmit(a.ctx, "stream-msg", msg) // 触发事件传递消息
@@ -299,7 +300,7 @@ func (a *App) getConversation(uuid string) (conversation Conversation, err error
 		msgList, err := a.messageDao.GetMessageListByUUID(uuid)
 		l := []openai.ChatCompletionMessage{{
 			Role:    openai.ChatMessageRoleSystem,
-			Content: currentConversation.CharacterSetting + "当要求你作图时，你应当返回@image 并将图片的描述语句转为英文prompt 返回，prompt 需要着重注意用词是否有歧义，对于有歧义的词需要详细描述",
+			Content: fmt.Sprintf("1.%s\n2.%s", currentConversation.CharacterSetting, defaultCharacterSetting),
 			Name:    "system",
 		}}
 		for _, item := range msgList {
@@ -400,7 +401,7 @@ func (a *App) ConversationCreate(uuid, title, characterSetting, model string) st
 		list: []openai.ChatCompletionMessage{
 			{
 				Role:    openai.ChatMessageRoleSystem,
-				Content: characterSetting,
+				Content: fmt.Sprintf("1.%s\n2.%s", characterSetting, defaultCharacterSetting),
 				Name:    openai.ChatMessageRoleSystem,
 			},
 		},
