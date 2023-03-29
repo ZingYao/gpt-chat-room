@@ -298,8 +298,8 @@ func (a *App) getConversation(uuid string) (conversation Conversation, err error
 		}
 		msgList, err := a.messageDao.GetMessageListByUUID(uuid)
 		l := []openai.ChatCompletionMessage{{
-			Role:    openai.ChatMessageRoleSystem + "当要求你作图时，你应当返回@image 并将图片的描述语句转为英文prompt 返回，prompt 需要着重注意用词是否有歧义，对于有歧义的词需要详细描述",
-			Content: currentConversation.CharacterSetting,
+			Role:    openai.ChatMessageRoleSystem,
+			Content: currentConversation.CharacterSetting + "当要求你作图时，你应当返回@image 并将图片的描述语句转为英文prompt 返回，prompt 需要着重注意用词是否有歧义，对于有歧义的词需要详细描述",
 			Name:    "system",
 		}}
 		for _, item := range msgList {
