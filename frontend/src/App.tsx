@@ -68,7 +68,7 @@ function App() {
   marked.setOptions({
     highlight: function (code, lang) {
       let value = hljs.highlightAuto(code, [lang]).value
-      value = `<div style="background-color: #3e3e3e;border-radius:5px;box-shadow: 0 0 3px #a6a6a6;width: 100%"><span>${lang}</span><button style="margin-right: 3px" onclick="ClipboardSetText(this)">复制</button></div>${value}`
+      value = `<div class="code-bar"><span>${lang}</span><button style="font-size: small" onclick="ClipboardSetText(this)">复制</button></div>${value}`
       return value;
     },
   });
