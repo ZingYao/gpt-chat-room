@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { marked } from 'marked';
 import './App.css';
 import {
@@ -34,18 +34,33 @@ const { Header, Aside, Footer, Content } = Layout;
 window.BrowserOpenURL = BrowserOpenURL;
 // @ts-ignore
 window.ClipboardSetText = function (dom) {
-  let codeDom =dom.parentNode.parentNode
-  let str = ""
-  for (let i = 1;i<codeDom.childNodes.length;i++) {
-    let node = codeDom.childNodes[i]
-    str = `${str}${node.innerHTML??node.innerText}`
-  }
-  ClipboardSetText(str).then(()=>{
-    MessagePlugin.success("复制成功")
-  }).catch((e)=> {
-    MessagePlugin.warning("复制失败")
-    console.log("copy failed",e)
-  })
+    // 获取要复制的节点
+    const copyElem = dom.parentNode.parentNode.lastChild;
+    console.log(copyElem)
+    // 创建 range 对象
+    const range = document.createRange();
+    copyElem && range.selectNode(copyElem);
+    // 将 range 对象添加到 selection 对象中
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    // 复制选择的内容到系统剪切板
+  document.execCommand("copy");
+  alert("已复制");
+
+  // let codeDom =dom.parentNode.parentNode
+  // let str = ""
+  // for (let i = 1;i<codeDom.childNodes.length;i++) {
+  //   let node = codeDom.childNodes[i]
+  //   str = `${str}${node.innerHTML??node.innerText}`
+  // }
+  // codeDom.execCommand("copy")
+  // ClipboardSetText(str).then(()=>{
+  //   MessagePlugin.success("复制成功")
+  // }).catch((e)=> {
+  //   MessagePlugin.warning("复制失败")
+  //   console.log("copy failed",e)
+  // })
 }
 
 function App() {
@@ -299,7 +314,7 @@ function App() {
                                 if (divTag.lastChild != null) {
                                   const lastChild =
                                     divTag.lastChild as HTMLElement;
-                                  lastChild.classList.add('cursor');
+                                  lastChild.classList?.add('cursor');
                                 }
                                 return divTag.innerHTML;
                               }
