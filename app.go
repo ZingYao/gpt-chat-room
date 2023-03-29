@@ -14,7 +14,6 @@ import (
 	"gorm.io/gorm"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -31,8 +30,6 @@ type App struct {
 	conversationDao dao.ConversationDao
 	configDao       dao.ConfigDao
 }
-
-const defaultCharacterSetting = "当发给你的消息是@image 开头时，你需要返回一个可用于AI作画的英文prompt，你需要以json格式返回，且消息只允许存在这个json，这个json包含如下几个key[prompt,num,size],其中num表示作图的数量,size表示作图的大小,size支持的值有 256x256,512x512,1024x1024，你要根据用户的需求返回不同的size"
 
 var conversationList map[string]Conversation
 
@@ -122,28 +119,7 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 	requestMessage, _ := json.Marshal(conversation.list)
 	runtime.LogInfof(a.ctx, "request data:%s", string(requestMessage))
 
-	// 连接OpenAI Chat Completion API，并发送请求，等待响应
-	stream, err := a.client.CreateChatCompletionStream(
-		a.ctx,
-		openai.ChatCompletionRequest{
-			Model:     openai.GPT3Dot5Turbo, // 模型选择
-			Messages:  conversation.list,    // 历史记录列表
-			MaxTokens: token,                // 最大token数量
-		},
-	)
-	if err != nil {
-		// 如果连接或请求出错，则弹出错误提示框
-		_, _ = runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
-			Type:    runtime.ErrorDialog,
-			Title:   "请求出错",
-			Message: fmt.Sprintf("出错了(%v)", err),
-		})
-		log.Printf("[error] request to gpt-3 has an error(%v)", err)
-		return ""
-	}
-	defer stream.Close()
-
-	var msg string
+	msg := "思考中，请稍后"
 	if !strings.Contains(question, "@image") {
 		// 开启goroutine来定时发送消息
 		go func() {
@@ -155,23 +131,60 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 				time.Sleep(800 * time.Millisecond)
 			}
 		}()
-	}
-
-	// 获取OpenAI API的响应
-	for {
-		var response openai.ChatCompletionStreamResponse
-		response, err = stream.Recv()
+		// 连接OpenAI Chat Completion API，并发送请求，等待响应
+		stream, err := a.client.CreateChatCompletionStream(
+			a.ctx,
+			openai.ChatCompletionRequest{
+				Model:     openai.GPT3Dot5Turbo, // 模型选择
+				Messages:  conversation.list,    // 历史记录列表
+				MaxTokens: token,                // 最大token数量
+			},
+		)
 		if err != nil {
-			if errors.Is(err, io.EOF) {
-				runtime.LogInfof(a.ctx, "会话结束(%v)", err)
-				break
-			}
-			runtime.LogErrorf(a.ctx, "openai 返回了一个错误(%v)", err)
-			return fmt.Sprintf("openai返回了一个错误(%v)", err)
+			// 如果连接或请求出错，则弹出错误提示框
+			_, _ = runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+				Type:    runtime.ErrorDialog,
+				Title:   "请求出错",
+				Message: fmt.Sprintf("出错了(%v)", err),
+			})
+			runtime.EventsEmit(a.ctx, "stream-msg", fmt.Sprintf("出错了(%v)", err)) // 触发事件传递消息
+			return fmt.Sprintf("出错了(%v)", err)
 		}
-		msg = msg + response.Choices[0].Delta.Content
-	}
+		defer stream.Close()
 
+		// 获取OpenAI API的响应
+		for {
+			var response openai.ChatCompletionStreamResponse
+			response, err = stream.Recv()
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					runtime.LogInfof(a.ctx, "会话结束(%v)", err)
+					break
+				}
+				runtime.LogErrorf(a.ctx, "openai 返回了一个错误(%v)", err)
+				return fmt.Sprintf("openai返回了一个错误(%v)", err)
+			}
+			msg = msg + response.Choices[0].Delta.Content
+		}
+
+	} else {
+		runtime.EventsEmit(a.ctx, "stream-msg", "作画中，请稍等") // 触发事件传递消息
+		rsp, err := a.client.CreateImage(a.ctx, openai.ImageRequest{
+			Prompt:         strings.ReplaceAll(question, "@image", ""),
+			N:              1,
+			Size:           openai.CreateImageSize512x512,
+			ResponseFormat: openai.CreateImageResponseFormatURL,
+		})
+		if err != nil {
+			fmt.Printf("gen image err:%v", err)
+		} else {
+			msg = ""
+			for _, item := range rsp.Data {
+				msg = fmt.Sprintf("%s![图片](%s)\n", msg, item.URL)
+				runtime.EventsEmit(a.ctx, "stream-msg", msg)
+			}
+		}
+	}
 	// 创建聊天机器人的回复，并添加到历史记录列表中
 	answer := openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleAssistant,
@@ -183,39 +196,8 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 	// 更新历史记录，并将机器人的回答存储到数据库中
 	conversationList[uuid] = conversation
 	_ = a.messageDao.NewMessageBatch(conversation.id, uuid, conversation.list[len(conversation.list)-2:])
-	if strings.Contains(question, "@image") {
-		fmt.Printf("msg", msg)
-		var imagePrompt struct {
-			Prompt string
-			Num    int
-			Size   string
-		}
-		err = json.Unmarshal([]byte(msg), &imagePrompt)
-		if err != nil {
-			runtime.EventsEmit(a.ctx, "stream-msg", fmt.Sprintf("不能理解的描述:%s(%v)", msg, err)) // 触发事件传递消息
-			return "success"
-		}
-		runtime.EventsEmit(a.ctx, "stream-msg", "作画中，请稍等") // 触发事件传递消息
-		rsp, err := a.client.CreateImage(a.ctx, openai.ImageRequest{
-			Prompt:         imagePrompt.Prompt,
-			N:              imagePrompt.Num,
-			Size:           imagePrompt.Size,
-			ResponseFormat: openai.CreateImageResponseFormatURL,
-		})
-		if err != nil {
-			fmt.Printf("gen image err:%v", err)
-		} else {
-			str := ""
-			for _, item := range rsp.Data {
-				str = fmt.Sprintf("%s![图片](%s)\n", str, item.URL)
-				runtime.EventsEmit(a.ctx, "stream-msg", str)
-			}
-			time.Sleep(800 * time.Millisecond)
-		}
-	} else {
-		runtime.EventsEmit(a.ctx, "stream-msg", msg) // 触发事件传递消息
-		time.Sleep(800 * time.Millisecond)
-	}
+	runtime.EventsEmit(a.ctx, "stream-msg", msg) // 触发事件传递消息
+	time.Sleep(800 * time.Millisecond)
 
 	return "success"
 }
@@ -310,7 +292,7 @@ func (a *App) getConversation(uuid string) (conversation Conversation, err error
 		msgList, err := a.messageDao.GetMessageListByUUID(uuid)
 		l := []openai.ChatCompletionMessage{{
 			Role:    openai.ChatMessageRoleSystem,
-			Content: fmt.Sprintf("1.%s\n2.%s", currentConversation.CharacterSetting, defaultCharacterSetting),
+			Content: currentConversation.CharacterSetting,
 			Name:    "system",
 		}}
 		for _, item := range msgList {
@@ -411,7 +393,7 @@ func (a *App) ConversationCreate(uuid, title, characterSetting, model string) st
 		list: []openai.ChatCompletionMessage{
 			{
 				Role:    openai.ChatMessageRoleSystem,
-				Content: fmt.Sprintf("1.%s\n2.%s", characterSetting, defaultCharacterSetting),
+				Content: characterSetting,
 				Name:    openai.ChatMessageRoleSystem,
 			},
 		},

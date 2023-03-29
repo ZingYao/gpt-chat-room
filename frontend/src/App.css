@@ -22,6 +22,10 @@
     white-space: pre-wrap;
 }
 
+.message img {
+    max-width: 100%;
+}
+
 .received {
     background-color: #e5e5ea;
     align-self: flex-start;
