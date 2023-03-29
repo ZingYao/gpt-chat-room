@@ -14,15 +14,9 @@
 }
 
 .message pre {
-    white-space: pre-line;
-}
-
-.message pre {
-    counter-reset: line;
     font-size: 16px;
     line-height: 1.5;
     position: relative;
-    white-space: pre-line;
     background-color: #2c2c2c;
     color: #c6c6c6;
 }
