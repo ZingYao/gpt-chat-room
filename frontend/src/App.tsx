@@ -324,7 +324,10 @@ function App() {
                                                                 if (divTag.lastChild != null) {
                                                                     const lastChild =
                                                                         divTag.lastChild as HTMLElement;
-                                                                    lastChild.classList?.add('cursor');
+
+                                                                    if(lastChild.tagName) {
+                                                                      lastChild.classList?.add('cursor');
+                                                                    }
                                                                 }
                                                                 return divTag.innerHTML;
                                                             }
