@@ -68,12 +68,11 @@ function App() {
 
   let [form] = Form.useForm();
   let [lastMsg, setLastMsg] = useState('');
-
   // 设置markdown高亮
   marked.setOptions({
     highlight: function (code, lang) {
       let value = hljs.highlightAuto(code, [lang]).value
-      value = `<div class="code-bar"><span>${lang}</span><button style="font-size: small" onclick="ClipboardSetText(this)">复制</button></div>${value}`
+      value = `${value}`
       return value;
     },
   });
@@ -268,18 +267,34 @@ function App() {
                           className="message received"
                           dangerouslySetInnerHTML={{
                             __html: (() => {
-                              const markStr:string = marked(item.content).replace(
+                              const markStr:string = marked(item.content).replaceAll(
                                 '<a ',
                                 "<a onclick='BrowserOpenURL(this.href);return false;' "
                               );
 
+                              const divTag = document.createElement('div');
+                              divTag.innerHTML = markStr.trim();
+                              for(let i = 0 ; i < divTag.childNodes.length;i++) {
+                                let preTag = divTag.childNodes[i]
+                                if (preTag.nodeName.toLowerCase() == "pre") {
+                                  let codeTag = preTag.lastChild
+                                  if (!codeTag) {
+                                    break
+                                  }
+                                  // @ts-ignore
+                                  let language = codeTag.getAttribute("class")?.replace("language-","")
+                                  let codeBar = document.createElement("div")
+                                  codeBar.className = "code-bar"
+                                  codeBar.innerHTML = `<span>${language}</span><button style="font-size: small" onclick="ClipboardSetText(this)">复制</button>`
+                                  // @ts-ignore
+                                  preTag.innerHTML = codeBar.outerHTML+codeTag.outerHTML
+                                  divTag.childNodes[i] = preTag
+                                }
+                              }
                               if (
                                 index == conversationMessageList.length - 1 &&
                                 onRecv
                               ) {
-                                const divTag = document.createElement('div');
-
-                                divTag.innerHTML = markStr.trim();
 
                                 if (divTag.lastChild != null) {
                                   const lastChild =
@@ -287,9 +302,8 @@ function App() {
                                   lastChild.classList.add('cursor');
                                 }
                                 return divTag.innerHTML;
-                              } else {
-                                return markStr;
                               }
+                                return divTag.innerHTML;
                             })(),
                           }}
                         ></div>
@@ -300,9 +314,8 @@ function App() {
                           key={index}
                           className="message sent"
                           dangerouslySetInnerHTML={{
-                            __html: marked(item.content)
-                              .replace('\n', '\n\n')
-                              .replace(
+                            __html: marked(item.content.replaceAll('\n', '<br />'))
+                              .replaceAll(
                                 '<a ',
                                 "<a onclick='BrowserOpenURL(this.href);return false;' "
                               ),
