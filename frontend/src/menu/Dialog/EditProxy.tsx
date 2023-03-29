@@ -1,10 +1,11 @@
-import {  useState } from 'react';
+import {useEffect, useState} from 'react';
 import { Button, Dialog, Form, Input, MessagePlugin, } from 'tdesign-react';
 import { UtilCheckProxy } from '../../../wailsjs/go/main/App';
 
 type EditProxyPropsType = {
   visible: boolean;
   initProxyTestAddr: string;
+  proxyAddr: string;
   onClose: () => void;
   onConfirm: (newkey: string) => void;
 };
@@ -14,11 +15,18 @@ const { FormItem } = Form;
 const EditProxy = (props: EditProxyPropsType) => {
   const [form] = Form.useForm();
 
-  const { visible, initProxyTestAddr, onClose, onConfirm } = props;
+  const { visible, initProxyTestAddr,proxyAddr, onClose, onConfirm } = props;
 
   const [proxyTestAddr, setProxyTestAddr] = useState(initProxyTestAddr);
 
   const [testLoading, setTestLoading] = useState(false);
+
+  useEffect(() => {
+    form.setFields([{
+      name:"proxy",
+      value:proxyAddr
+    }])
+  },[proxyAddr])
 
   const _onConfirm = async () => {
     try {
@@ -40,7 +48,6 @@ const EditProxy = (props: EditProxyPropsType) => {
         form.reset();
         onClose();
       }}
-      // confirmOnEnter={true}
       onConfirm={() => {
         _onConfirm();
       }}
@@ -55,6 +62,9 @@ const EditProxy = (props: EditProxyPropsType) => {
         labelAlign="top"
         style={{
           paddingBottom: '2rem',
+        }}
+        initialData={{
+          proxy:proxyAddr
         }}
       >
         <FormItem label="代理地址" name="proxy" >

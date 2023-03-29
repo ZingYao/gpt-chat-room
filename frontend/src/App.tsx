@@ -122,6 +122,7 @@ function App() {
     }, [lastMsg]);
 
     EventsOn('stream-msg', (data: string) => {
+        console.log("getmsg",data)
         setLastMsg(data);
     });
 
@@ -206,8 +207,10 @@ function App() {
             setOverResponse(true);
             setConversationMessageList(conversationMessageList);
             setLastMsg('');
+            console.log("res",res)
             if (res != 'success') {
-                MessagePlugin.info(res);
+                console.log("error",res)
+                MessagePlugin.error(res);
             }
             setOnRecv(false);
         });

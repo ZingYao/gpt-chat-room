@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fiona_work_support/common"
 	"fiona_work_support/config"
 	"fiona_work_support/model/dao"
@@ -116,6 +117,9 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 		return "会话过长，请新建会话后重试"
 	}
 
+	requestMessage, _ := json.Marshal(conversation.list)
+	runtime.LogInfof(a.ctx, "request data:%s", string(requestMessage))
+
 	// 连接OpenAI Chat Completion API，并发送请求，等待响应
 	stream, err := a.client.CreateChatCompletionStream(
 		a.ctx,
@@ -141,6 +145,12 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 	// 开启goroutine来定时发送消息
 	go func() {
 		for {
+			if strings.Contains(msg, "@image") {
+				return
+			}
+			if len(msg) < 10 {
+				continue
+			}
 			runtime.EventsEmit(a.ctx, "stream-msg", msg) // 触发事件传递消息
 			if err != nil {
 				return
@@ -155,11 +165,14 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 		response, err = stream.Recv()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
+				runtime.LogInfof(a.ctx, "会话结束(%v)", err)
 				break
 			}
+			runtime.LogErrorf(a.ctx, "openai 返回了一个错误(%v)", err)
 			return fmt.Sprintf("openai返回了一个错误(%v)", err)
 		}
 		msg = msg + response.Choices[0].Delta.Content
+		fmt.Println("msg", msg)
 	}
 
 	// 创建聊天机器人的回复，并添加到历史记录列表中
@@ -173,8 +186,25 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 	// 更新历史记录，并将机器人的回答存储到数据库中
 	conversationList[uuid] = conversation
 	_ = a.messageDao.NewMessageBatch(conversation.id, uuid, conversation.list[len(conversation.list)-2:])
-	runtime.EventsEmit(a.ctx, "stream-msg", msg) // 触发事件传递消息
-	time.Sleep(800 * time.Millisecond)
+	if strings.Contains(msg, "@image") {
+		prompt := strings.Split(msg, "prompt:")[1]
+		fmt.Printf("draw,%s", msg)
+		rsp, err := a.client.CreateImage(a.ctx, openai.ImageRequest{
+			Prompt:         prompt,
+			N:              1,
+			Size:           openai.CreateImageSize256x256,
+			ResponseFormat: openai.CreateImageResponseFormatURL,
+		})
+		if err != nil {
+			fmt.Printf("gen image err:%v", err)
+		} else {
+			runtime.EventsEmit(a.ctx, "stream-msg", fmt.Sprintf("![图片](%s)", rsp.Data[0].URL))
+			time.Sleep(800 * time.Second)
+		}
+	} else {
+		runtime.EventsEmit(a.ctx, "stream-msg", msg) // 触发事件传递消息
+		time.Sleep(800 * time.Millisecond)
+	}
 
 	return "success"
 }
@@ -268,7 +298,7 @@ func (a *App) getConversation(uuid string) (conversation Conversation, err error
 		}
 		msgList, err := a.messageDao.GetMessageListByUUID(uuid)
 		l := []openai.ChatCompletionMessage{{
-			Role:    openai.ChatMessageRoleSystem,
+			Role:    openai.ChatMessageRoleSystem + "当要求你作图时，你应当返回@image 并将图片的描述语句转为英文prompt 返回，prompt 需要着重注意用词是否有歧义，对于有歧义的词需要详细描述",
 			Content: currentConversation.CharacterSetting,
 			Name:    "system",
 		}}

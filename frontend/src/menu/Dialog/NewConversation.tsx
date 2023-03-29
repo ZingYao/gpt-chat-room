@@ -89,7 +89,7 @@ export default function NewConversation(props: NewConversationPropsType) {
       setModeLoading(true);
     }, 200);
     OpenAiGetModelList().then((list: string[]) => {
-      setModeOptions(modelList.map((mode)=>{
+      setModeOptions(list.map((mode)=>{
         return {
           value: mode,
           label: mode,

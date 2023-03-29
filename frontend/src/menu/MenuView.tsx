@@ -271,6 +271,7 @@ const MenuView = (props: MenuViewPropsType) => {
                 <EditProxy 
                     visible={proxyConfigVisible}
                     initProxyTestAddr={proxyTestAddr}
+                    proxyAddr={proxyAddr}
                     onClose={() => {
                         ConfigGet().then(config => {
                             setProxyAddr(config.ProxyAddr)
@@ -279,6 +280,7 @@ const MenuView = (props: MenuViewPropsType) => {
                     }}
                     onConfirm={(proxy) => {
                         ConfigSetProxy(proxy)
+                        setProxyAddr(proxy)
                         setProxyConfigVisible(false)
                     }}
                 />
