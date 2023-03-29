@@ -40,7 +40,12 @@ window.ClipboardSetText = function (dom) {
     let node = codeDom.childNodes[i]
     str = `${str}${node.innerHTML??node.innerText}`
   }
-  ClipboardSetText(str)
+  ClipboardSetText(str).then(()=>{
+    MessagePlugin.success("复制成功")
+  }).catch((e)=> {
+    MessagePlugin.warning("复制失败")
+    console.log("copy failed",e)
+  })
 }
 
 function App() {
