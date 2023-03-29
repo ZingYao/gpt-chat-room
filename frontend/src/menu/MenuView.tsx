@@ -256,10 +256,15 @@ const MenuView = (props: MenuViewPropsType) => {
                         setApiKeyVisible(false)
                     }}
                     onConfirm={(newKey) => {
+                        console.log("MenuView newKey", newKey);
                         ConfigSetApiKey(newKey)
-                        ConfigGet().then(config => {
-                            setApiKey(config.ApiKey)
-                            setApiKeyVisible(false)
+                            .then(() => {
+                                ConfigGet().then(config => {
+                                    setApiKey(config.ApiKey)
+                                    setApiKeyVisible(false)
+                            })
+                        }).catch((e) => {
+                            console.error("添加 key 错误", e);
                         })
                     }}
                 />

@@ -17,28 +17,37 @@ export default function EditApiKey (props:EditApiKeyPropsType) {
 
   const {visible, initKey, onClose, onConfirm} = props
 
+  useEffect(() => {
+    
+    if(visible) {
+      console.log("EditApiKey", initKey);
+      if(initKey && initKey.length > 0) {
+        setNewKey(initNewKeyValue());
+      }
+
+      form.setFields([{
+        name: 'key',
+        value: newKey,
+      }])
+    }
+    
+  }, [visible])
+
   const [form] = Form.useForm();
 
   const initNewKeyValue = () => {
     return initKey.slice(1, 5) + "******" + initKey.slice(initKey.length - 5, initKey.length)
   }
 
-  const [newKey , setNewKey ] = useState('')
+  const [newKey , setNewKey ] = useState(initNewKeyValue())
 
   useEffect(() => {
-    
-    if(visible) {
-    
-      if(initKey && initKey.length > 0) {
-        setNewKey(initNewKeyValue());
-        form.setFields([{
-          name: 'key',
-          value: newKey
-        }])
-      }
-    }
-    
-  }, [visible])
+    console.log("useEffect newkey", newKey);
+    form.setFields([{
+      name: 'key',
+      value: newKey,
+    }])
+  }, [newKey])
 
 
 
@@ -73,15 +82,13 @@ export default function EditApiKey (props:EditApiKeyPropsType) {
     style={{
       textAlign: 'left',
     }}
->
+>   
       <Form
         form={form}
         colon
         labelWidth={100}
         labelAlign="top"
-        initialData={{
-          'key': initKey
-        }}
+        initialData={{key:initKey}}
       >
         <FormItem label="接口 KEY" name="key" rules={[{ required: true, }]}>
           <Input />
