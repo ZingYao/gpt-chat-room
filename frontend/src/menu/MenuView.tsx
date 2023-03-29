@@ -1,23 +1,13 @@
 import {entities} from "../models";
 import {ReactNode, useEffect, useState} from "react";
-import {
-    Button,
-    Dialog,
-    Form,
-    Input,
-    Menu,
-    MenuValue,
-    MessagePlugin,
-    Select,
-    SelectValue,
-    Textarea
-} from "tdesign-react";
+import {Button, Dialog, Input, Menu, MenuValue, MessagePlugin, Select, SelectValue, Textarea} from "tdesign-react";
 import {DeleteIcon, Edit1Icon, PinFilledIcon, PinIcon} from 'tdesign-icons-react';
 import {
     ConfigGet,
     ConfigSetApiKey,
     ConfigSetProxy,
     ConversationCreate,
+    ConversationDelete, ConversationEdit,
     ConversationGetList,
     OpenAiGetModelList,
     UtilCheckProxy,
@@ -25,7 +15,9 @@ import {
 } from "../../wailsjs/go/main/App";
 import {v4 as uuid} from "uuid";
 import Option from "tdesign-react/es/select/base/Option";
-import FormItem from "tdesign-react/es/form/FormItem";
+import NewConversation, { ConversationInfoType } from "./Dialog/NewConversation";
+import EditApiKey from "./Dialog/EditApiKey";
+import EditProxy from "./Dialog/EditProxy";
 
 const {MenuItem} = Menu
 
@@ -38,6 +30,7 @@ type MenuViewPropsType = {
     setCurrentConversationId: (id: number) => void
 }
 
+
 const MenuView = (props: MenuViewPropsType) => {
     const {onChange, defaultSelected, currentConversationId, setCurrentConversationId, setConversationList} = props
     let {conversationList} = props
@@ -45,11 +38,7 @@ const MenuView = (props: MenuViewPropsType) => {
     // 代理测试地址
     let [proxyTestAddr, setProxyTestAddr] = useState("https://api.openai.com/")
     //新建会话窗口显示控制
-    let [newConversationVisible, setNewConversationVisible] = useState(false)
-    //新建会话标题
-    let [conversationTitle, setConversationTitle] = useState("")
-    //新建会话人设
-    let [conversationCharacterSetting, setConversationCharacterSetting] = useState("")
+    let [editConversationVisible, setEditConversationVisible] = useState(false)
     //apikey设置窗口显示控制
     let [apiKeyConfigVisible, setApiKeyVisible] = useState(false)
     //代理设置窗口显示控制
@@ -60,8 +49,76 @@ const MenuView = (props: MenuViewPropsType) => {
     let [proxyAddr, setProxyAddr] = useState("")
     //模型列表
     let [modelList, setModelList] = useState<string[]>([])
-    //新建会话模型
-    let [conversationModel, setConversationModel] = useState(modelList[0])
+    let [conversationInfo, setConversationInfo] = useState<ConversationInfoType>({
+        characterSetting: "",
+        model: "",
+        uuid: "",
+        title: ""
+    })
+    let [isEdit, setIsEdit] = useState(true)
+
+    let resetEditConversationWindowData = () => {
+        setConversationInfo({
+            uuid: uuid(),
+            characterSetting: "",
+            model: modelList.length > 0 ? modelList[0] : "",
+            title: ""
+        })
+    }
+    let submitConversation = (newConversation:ConversationInfoType) => {
+        let {
+            uuid,
+            title,
+            model,
+            characterSetting
+        } = newConversation;
+        let func:Promise<any>;
+        let id = ""
+        if (!isEdit) {
+            func = ConversationCreate(
+                uuid, title, characterSetting,model
+            ).then((s) => {
+                if (s != "会话创建成功") {
+                    UtilMessageDialog("error", "错误", `会话创建失败(${s})`).then(r => {
+                    })
+                    return
+                }
+                setEditConversationVisible(false)
+
+                ConversationGetList().then((list) => {
+                    setConversationList(list)
+                    list.length > 0 && setCurrentConversationId(0)
+                })
+            })
+        } else {
+            func = ConversationEdit(
+                uuid, title,characterSetting, model,
+            ).then((s:string)=>{
+                if (!isEdit && s != "会话创建成功") {
+                    UtilMessageDialog("error", "错误", `会话创建失败(${s})`).then(r => {
+                    })
+                    return
+                }
+                if (isEdit && s != "") {
+                    UtilMessageDialog("error", "错误", `会话编辑失败(${s})`).then(r => {
+                    })
+                    return
+                }
+                setEditConversationVisible(false)
+                ConversationGetList().then((list) => {
+                    setConversationList(list)
+                    if (!isEdit) {
+                        list.length > 0 && setCurrentConversationId(0)
+                    }
+                })
+            })
+        }
+        
+    }
+
+    let [loading, setLoading] = useState({
+        OpenAiGetModelList: false,
+    })
 
     // 获取会话列表
     useEffect(function () {
@@ -80,6 +137,26 @@ const MenuView = (props: MenuViewPropsType) => {
             setModelList(list)
         })
     }, [])
+
+    const openEditConversationDialog = (isEdit:boolean) => {
+
+
+        setModelList(modelList)
+        setIsEdit(isEdit)
+        setEditConversationVisible(true)
+
+        if(!isEdit) {
+            setConversationInfo(old => {
+                old.uuid = uuid(),
+                old.model = modelList[0]
+                return {
+                    ...old                                    
+                }
+            })
+        }
+    }
+
+
 
     return (
         <>
@@ -104,8 +181,39 @@ const MenuView = (props: MenuViewPropsType) => {
                                       icon={currentConversationId == index ? <PinFilledIcon/> : <PinIcon/>}>
                                 <div>
                                     <span>{c.Title}</span>
-                                    {/*<Button shape="circle" theme="default" icon={<Edit1Icon size={"3px"}/>}/>*/}
-                                    {/*<Button shape="circle" theme="default" icon={<DeleteIcon size={"3px"}/>}/>*/}
+                                    <Button shape="circle" theme="default" icon={<Edit1Icon size={"3px"}/>}
+                                            onClick={() => {
+                                                setConversationInfo({
+                                                    uuid:c.UUID,
+                                                    characterSetting: c.CharacterSetting,
+                                                    model: c.ChatModel,
+                                                    title: c.Title
+                                                })
+                                                openEditConversationDialog(true);
+                                                // OpenAiGetModelList().then((list: string[]) => {
+                                                //         setModelList(list)
+                                                //         setIsEdit(true  )
+                                                        
+                                                //     }
+                                                // ).finally(() => {
+                                                //     setEditConversationVisible(true)
+                                                // })
+                                            }
+                                            }
+                                    />
+                                    <Button shape="circle" theme="default" icon={<DeleteIcon size={"3px"}/>}
+                                            onClick={() => {
+                                                ConversationDelete(c.UUID).then((res: string) => {
+                                                    if (res == "") {
+                                                        ConversationGetList().then((list) => {
+                                                            setConversationList(list)
+                                                        })
+                                                    } else {
+                                                        MessagePlugin.error(`删除会话失败:${res}`)
+                                                    }
+                                                })
+                                            }
+                                            }/>
                                 </div>
                             </MenuItem>
                         )
@@ -113,14 +221,8 @@ const MenuView = (props: MenuViewPropsType) => {
                 </Menu>
 
                 <div>
-                    <Button style={{width: "100%", height: "40px"}} onClick={() => {
-                        OpenAiGetModelList().then((list: string[]) => {
-                            if (list.length == 0) {
-                                MessagePlugin.error("获取模型列表失败，请在代理设置中检查连通性")
-                            }
-                            setModelList(list)
-                            setNewConversationVisible(true)
-                        })
+                    <Button loading={loading.OpenAiGetModelList} style={{width: "100%", height: "40px"}} onClick={() => {
+                        openEditConversationDialog(false);
                     }}>新建会话</Button>
                 </div>
                 <div style={{marginTop: "1px"}}>
@@ -133,101 +235,54 @@ const MenuView = (props: MenuViewPropsType) => {
                         setProxyConfigVisible(true)
                     }}>设置代理</Button>
                 </div>
-                <Dialog
-                    header="请输入会话标题"
-                    visible={newConversationVisible}
+                <NewConversation
+                    isEdit={isEdit}
+                    visible={editConversationVisible}
                     onClose={() => {
-                        setNewConversationVisible(false)
-                        document.getElementById("conversationResetBtn")?.click()
+                        setEditConversationVisible(false)
+                        resetEditConversationWindowData()
                     }}
-                    onConfirm={() => {
-                        if (!conversationTitle || conversationTitle == "") {
-                            UtilMessageDialog("error", "错误", "会话标题不能为空").then(r => {
-                            })
-                            return
-                        }
-                        if (!conversationModel || conversationModel == "") {
-                            UtilMessageDialog("error", "错误", "会话模型不能为空").then(r => {
-                            })
-                            return;
-                        }
-                        let id = uuid()
-                        ConversationCreate(id, conversationTitle, conversationCharacterSetting, conversationModel).then((s) => {
-                            if (s != "会话创建成功") {
-                                UtilMessageDialog("error", "错误", `会话创建失败(${s})`).then(r => {
-                                })
-                                return
-                            }
-                            conversationList = conversationList.concat([{
-                                Title: conversationTitle,
-                                UUID: id,
-                                CharacterSetting: conversationCharacterSetting,
-                                ChatModel: conversationModel
-                            }])
-                            setConversationList(conversationList)
-                            setNewConversationVisible(false)
-                            document.getElementById("conversationResetBtn")?.click()
-                            setConversationModel(modelList[0])
-
-                            ConversationGetList().then((list) => {
-                                setConversationList(list)
-                                list.length > 0 && setCurrentConversationId(0)
-                            })
-                        })
-                    }}
-                >
-                    <Form resetType={"initial"}>
-                        <FormItem label="会话标题" name="conversationTitle">
-                            <Input placeholder="会话标题" onChange={(v: string) => {
-                                setConversationTitle(v.trim())
-                            }}></Input>
-                        </FormItem>
-                        <FormItem label="会话人设" name="conversationCharacterSetting">
-                            <Textarea autosize={{minRows: 2, maxRows: 10}} placeholder="会话人设"
-                                      onChange={(v: string) => {
-                                          setConversationCharacterSetting(v)
-                                      }}></Textarea>
-                        </FormItem>
-                        <FormItem label="会话模型" name="conversationModel">
-                            <Select placeholder="会话模型" value={conversationModel} filterable
-                                    defaultValue={modelList[0]}
-                                    onChange={(m: SelectValue) => setConversationModel(m.toString())}>
-                                {modelList.sort().map((model: string, index: number) => (
-                                    <Option key={index} value={model} label={model}></Option>
-                                ))}
-                            </Select>
-                        </FormItem>
-                        <Button type="reset" id="conversationResetBtn" style={{display: "none"}}></Button>
-                    </Form>
-                </Dialog>
-                <Dialog
-                    header="请输入apikey"
+                    onConfirm={(newConversation) => submitConversation(newConversation)}
+                    info={conversationInfo}
+                    modelList={modelList}
+                />
+                <EditApiKey
                     visible={apiKeyConfigVisible}
+                    initKey={apiKey}
                     onClose={() => {
                         ConfigGet().then(config => {
                             setApiKey(config.ApiKey)
                         })
                         setApiKeyVisible(false)
                     }}
-                    confirmOnEnter={true}
-                    onConfirm={() => {
-                        if (apiKey == "") {
-                            UtilMessageDialog("error", "错误", "apiKey不能为空").catch((e) => {
-                                console.log("error", e)
+                    onConfirm={(newKey) => {
+                        console.log("MenuView newKey", newKey);
+                        ConfigSetApiKey(newKey)
+                            .then(() => {
+                                ConfigGet().then(config => {
+                                    setApiKey(config.ApiKey)
+                                    setApiKeyVisible(false)
                             })
-                            return
-                        }
-                        setApiKeyVisible(false)
-                        ConfigSetApiKey(apiKey)
+                        }).catch((e) => {
+                            console.error("添加 key 错误", e);
+                        })
                     }}
-                >
-                    <Input
-                        value={apiKey.length <= 11 ? apiKey : apiKey.slice(1, 5) + "******" + apiKey.slice(apiKey.length - 5, apiKey.length)}
-                        placeholder="OpenAI Api Key" onChange={(v: string) => {
-                        setApiKey(v.trim())
-                    }}></Input>
-                </Dialog>
-                <Dialog
+                />
+                <EditProxy 
+                    visible={proxyConfigVisible}
+                    initProxyTestAddr={proxyTestAddr}
+                    onClose={() => {
+                        ConfigGet().then(config => {
+                            setProxyAddr(config.ProxyAddr)
+                        })
+                        setProxyConfigVisible(false)
+                    }}
+                    onConfirm={(proxy) => {
+                        ConfigSetProxy(proxy)
+                        setProxyConfigVisible(false)
+                    }}
+                />
+                {/* <Dialog
                     header="请输入代理地址"
                     visible={proxyConfigVisible}
                     onClose={() => {
@@ -253,7 +308,7 @@ const MenuView = (props: MenuViewPropsType) => {
                         })
                     }
                     }>检查连通性</Button>
-                </Dialog>
+                </Dialog> */}
             </div>
         </>);
 }

@@ -23,7 +23,7 @@ type (
 )
 
 func (m *messageDao) DeleteByUUID(uuid string) error {
-	tx := m.db.Where("uuid = ?", uuid).Delete(&entities.Message{})
+	tx := m.db.Where("cuuid = ?", uuid).Delete(&entities.Message{})
 	return tx.Error
 }
 

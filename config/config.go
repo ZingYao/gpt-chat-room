@@ -34,11 +34,3 @@ func GetUserName() string {
 	}
 	return currentUser.Username
 }
-
-func SetRequestKey(key string) {
-	requestKey = key
-}
-
-func GetRequestKey() string {
-	return requestKey
-}
