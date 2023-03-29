@@ -144,7 +144,6 @@ export default function NewConversation(props: NewConversationPropsType) {
         <FormItem
           label="会话人设"
           name="characterSetting"
-          rules={[{ required: true }]}
         >
           <Textarea
             autosize={{ minRows: 2, maxRows: 5 }}
