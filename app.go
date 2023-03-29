@@ -32,7 +32,7 @@ type App struct {
 	configDao       dao.ConfigDao
 }
 
-const defaultCharacterSetting = "当要求你作图或提供图像时，你应当返回@image 并将图片的描述语句转为英文prompt 返回，prompt 需要着重注意用词是否有歧义，对于有歧义的词需要详细描述"
+const defaultCharacterSetting = "当发给你的消息是@image 开头时，你需要返回一个可用于AI作画的英文prompt，你需要以json格式返回，且消息只允许存在这个json，这个json包含如下几个key[prompt,num,size],其中num表示作图的数量,size表示作图的大小,size支持的值有 256x256,512x512,1024x1024，你要根据用户的需求返回不同的size"
 
 var conversationList map[string]Conversation
 
@@ -144,22 +144,18 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 	defer stream.Close()
 
 	var msg string
-	// 开启goroutine来定时发送消息
-	go func() {
-		for {
-			if strings.Contains(msg, "@image") {
-				return
+	if !strings.Contains(question, "@image") {
+		// 开启goroutine来定时发送消息
+		go func() {
+			for {
+				runtime.EventsEmit(a.ctx, "stream-msg", msg) // 触发事件传递消息
+				if err != nil {
+					return
+				}
+				time.Sleep(800 * time.Millisecond)
 			}
-			if len(msg) < 10 {
-				continue
-			}
-			runtime.EventsEmit(a.ctx, "stream-msg", msg) // 触发事件传递消息
-			if err != nil {
-				return
-			}
-			time.Sleep(800 * time.Millisecond)
-		}
-	}()
+		}()
+	}
 
 	// 获取OpenAI API的响应
 	for {
@@ -187,19 +183,33 @@ func (a *App) OpenAiChat(uuid, question string, token int) (result string) {
 	// 更新历史记录，并将机器人的回答存储到数据库中
 	conversationList[uuid] = conversation
 	_ = a.messageDao.NewMessageBatch(conversation.id, uuid, conversation.list[len(conversation.list)-2:])
-	if strings.Contains(msg, "@image") {
-		prompt := strings.Split(msg, "prompt:")[1]
-		fmt.Printf("draw,%s", msg)
+	if strings.Contains(question, "@image") {
+		fmt.Printf("msg", msg)
+		var imagePrompt struct {
+			Prompt string
+			Num    int
+			Size   string
+		}
+		err = json.Unmarshal([]byte(msg), &imagePrompt)
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "stream-msg", fmt.Sprintf("不能理解的描述:%s(%v)", msg, err)) // 触发事件传递消息
+			return "success"
+		}
+		runtime.EventsEmit(a.ctx, "stream-msg", "作画中，请稍等") // 触发事件传递消息
 		rsp, err := a.client.CreateImage(a.ctx, openai.ImageRequest{
-			Prompt:         prompt,
-			N:              1,
-			Size:           openai.CreateImageSize256x256,
+			Prompt:         imagePrompt.Prompt,
+			N:              imagePrompt.Num,
+			Size:           imagePrompt.Size,
 			ResponseFormat: openai.CreateImageResponseFormatURL,
 		})
 		if err != nil {
 			fmt.Printf("gen image err:%v", err)
 		} else {
-			runtime.EventsEmit(a.ctx, "stream-msg", fmt.Sprintf("![图片](%s)", rsp.Data[0].URL))
+			str := ""
+			for _, item := range rsp.Data {
+				str = fmt.Sprintf("%s![图片](%s)\n", str, item.URL)
+				runtime.EventsEmit(a.ctx, "stream-msg", str)
+			}
 			time.Sleep(800 * time.Millisecond)
 		}
 	} else {
