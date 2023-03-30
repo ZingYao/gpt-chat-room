@@ -19,7 +19,7 @@ import NewConversation, { ConversationInfoType } from "./Dialog/NewConversation"
 import EditApiKey from "./Dialog/EditApiKey";
 import EditProxy from "./Dialog/EditProxy";
 
-const {MenuItem} = Menu
+const { MenuItem } = Menu
 
 type MenuViewPropsType = {
     onChange: (value: MenuValue) => void,
@@ -160,16 +160,26 @@ const MenuView = (props: MenuViewPropsType) => {
 
     return (
         <>
-            <h1 style={{height: "40px"}}>会话列表</h1>
-            <hr style={{width: "95%", color: "#333"}}/>
-            <div className="cantDrag">
+            <h1 style={{}}>会话列表</h1>
+            {/* <hr style={{width: "95%", color: "#333"}}/> */}
+            <div className="cantDrag" style={{
+                display: "flex",
+                flexDirection: 'column',
+                flex: "1 0 0%",
+            }}>
+
+                <div style={{
+                    flex: "1 1 auto",
+                    display: "flex",
+                    flexFlow: "column",
+                    height: 0,
+                    overflowY: "auto",
+                }}>
+
                 <Menu
                     style={{
                         margin: "0 auto",
                         width: "100%",
-                        height: "calc(100vh - 263px)",
-                        overflowY: "scroll",
-                        whiteSpace: "nowrap",
                     }}
                     onChange={onChange}
                     defaultValue={0}
@@ -219,6 +229,8 @@ const MenuView = (props: MenuViewPropsType) => {
                         )
                     })}
                 </Menu>
+                </div>
+
 
                 <div>
                     <Button loading={loading.OpenAiGetModelList} style={{width: "100%", height: "40px"}} onClick={() => {

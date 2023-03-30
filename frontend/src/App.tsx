@@ -225,16 +225,23 @@ function App() {
     return (
         <div
             style={{
-                marginTop: '30px',
-                marginBottom: '10px',
-                overflow: 'hidden',
-                height: 'calc(100vh - 40px)',
+                marginTop: '46px',
+                // marginBottom: '10px',
+                // overflow: 'hidden',
+                // height: '100%',
+                flex: "1 0 0%",
+                display: "flex",
+                flexFlow: "column"
             }}
             className="canDrag"
             id="App"
         >
-            <Layout style={{height: '100vh'}}>
-                <Aside style={{height: '100%', borderRight: '1px solid #fff'}}>
+            <Layout style={{flex: "1 0 0%",}}>
+                <Aside style={{
+                    borderRight: '1px solid #fff',
+                    flex: "1 0 0%", 
+                    display: "flex", flexDirection: 'column',
+                }}>
                     <MenuView
                         onChange={onConversationChange}
                         conversationList={conversationList}
@@ -244,7 +251,7 @@ function App() {
                         currentConversationId={currentConversationId}
                     />
                 </Aside>
-                <Layout style={{height: '100vh', overflow: 'hidden'}}>
+                <Layout style={{flex:1,}}>
                     <Header style={{height: '70px'}}>
                         <Popup
                             overlayStyle={{width: '75%', marginRight: '30px'}}
@@ -267,21 +274,21 @@ function App() {
                             </h1>
                         </Popup>
                     </Header>
-
-                    <Content className="cantDrag">
+                    <Content className="cantDrag" style={{display: "flex", flexDirection: 'column',}}>
                         <div
                             id="chatWindow"
                             style={{
                                 width: '100%',
-                                height: 'calc(100vh - 200px)',
-                                overflowY: 'scroll',
+                                flex: "1 1 auto",
+                                overflowY: 'auto',
                                 padding: '10px',
+                                height: 0,
                             }}
                         >
-                            <div className="messages" key="message">
+                            <div className="messages">
                                 {conversationMessageList.map((item, index) => {
                                     if (item.content.trim().length == 0) {
-                                        return;
+                                        return<></>;
                                     }
                                     switch (item.role) {
                                         case 'assistant':
@@ -359,8 +366,7 @@ function App() {
                     </Content>
                     <Footer
                         style={{
-                            height: '50px',
-                            marginBottom: '10px',
+                            marginBottom: '0px',
                             backgroundColor: 'rgba(250,250,250,1)',
                         }}
                         className="cantDrag"
@@ -383,7 +389,7 @@ function App() {
                                     </Select>
                                 </Col>
                                 <Col span={9} key="input">
-                                    {/*<FormItem name="question">*/}
+                                
                                     <Textarea
                                         autosize={{minRows: 1, maxRows: 8}}
                                         value={currentQuestion}
@@ -404,7 +410,7 @@ function App() {
                                             }
                                         }}
                                     />
-                                    {/*</FormItem>*/}
+                                    
                                 </Col>
                                 <Col span={1} key="senderBtn">
                                     <FormItem style={{marginLeft: '5px', width: '100%'}}>
