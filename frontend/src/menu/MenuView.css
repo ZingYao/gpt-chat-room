@@ -1,0 +1,22 @@
+.menu_item {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  text-align: left;
+}
+
+.menu_item_controller {
+  flex: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding-right: 0.2rem;
+  padding-left: 0.2rem;
+  
+}
+
+
+.t-is-active .menu_item_controller  {
+box-shadow: -13px 0 16px 0 rgb(244, 240, 240);
+}

@@ -252,7 +252,7 @@ function App() {
                     />
                 </Aside>
                 <Layout style={{flex:1,}}>
-                    <Header style={{height: '70px'}}>
+                    <Header style={{height: '70px', textOverflow: 'ellipsis',}}>
                         <Popup
                             overlayStyle={{width: '75%', marginRight: '30px'}}
                             content={
@@ -268,10 +268,16 @@ function App() {
                                 </>
                             }
                         >
-                            <h1>
+                            <h1 style={{
+                                // display: "flex",
+                                // flexDirection: "row",
+                                // flex: 1,
+                            }}>
                                 {conversationList[currentConversationId]?.Title ??
                                     '等待创建会话'}
                             </h1>
+                            
+                           
                         </Popup>
                     </Header>
                     <Content className="cantDrag" style={{display: "flex", flexDirection: 'column',}}>
